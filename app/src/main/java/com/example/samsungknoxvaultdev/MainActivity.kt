@@ -20,8 +20,7 @@ class MainActivity : ComponentActivity() {
                 // A surface container using the 'background' color from the theme
                 Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
                     Greeting("Android")
-                    //Noah testet. Funktioniert es?
-                    //Ja tut es
+                    //Gruppe testet gemeinsam
                 }
             }
         }

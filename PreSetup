@@ -1,0 +1,347 @@
+In Android Studio:
+File > Settings > Languages & Frameworks > Android SDK > SDK Tools
+installiere:
+
+Android SDK Build-Tools
+NDK
+CMake
+Neuen Ordner für Projekt erstellen:
+
+$ mkdir greetings
+$ mkdir greetings/android
+$ mkdir greetings/rust
+$ mkdir greetings/NDK
+$ cd greetings
+Datei env.bash erstellen mit folgendem Inhalt:
+
+export ANDROID_HOME=$HOME/Android/Sdk
+export NDK_HOME=$ANDROID_HOME/ndk/26.2.11394342
+Umgebungsvariablen laden:
+
+$ source env.bash
+Toolchain installieren:
+
+${NDK_HOME}/build/tools/make_standalone_toolchain.py --api 26 --arch arm64 --install-dir NDK/arm64
+${NDK_HOME}/build/tools/make_standalone_toolchain.py --api 26 --arch arm --install-dir NDK/arm
+${NDK_HOME}/build/tools/make_standalone_toolchain.py --api 26 --arch x86 --install-dir NDK/x86
+Warnung das diese Methode veraltet ist ignorieren.
+
+Neue Datei cargo-config.toml erstellen
+
+[target.aarch64-linux-android]
+ar = "<project path>/greetings/NDK/arm64/bin/aarch64-linux-android-ar"
+linker = "<project path>/greetings/NDK/arm64/bin/aarch64-linux-android-clang"
+
+[target.armv7-linux-androideabi]
+ar = "<project path>/greetings/NDK/arm/bin/arm-linux-androideabi-ar"
+linker = "<project path>/greetings/NDK/arm/bin/arm-linux-androideabi-clang"
+
+[target.i686-linux-android]
+ar = "<project path>/greetings/NDK/x86/bin/i686-linux-android-ar"
+linker = "<project path>/greetings/NDK/x86/bin/i686-linux-android-clang"
+Datei kopieren:
+
+$ cp cargo-config.toml ~/.cargo/config
+Rust Compiler für android installieren:
+
+$ rustup target add aarch64-linux-android armv7-linux-androideabi i686-linux-android
+Neues Rust Projekt erstellen:
+
+cargo new rust
+Datei rust/src/lib.rs mit folgendem Inhalt erstellen:
+
+use std::os::raw::{c_char};
+use std::ffi::{CString, CStr};
+
+#[no_mangle]
+pub extern fn rust_greeting(to: *const c_char) -> *mut c_char {
+    let c_str = unsafe { CStr::from_ptr(to) };
+    let recipient = match c_str.to_str() {
+        Err(_) => "there",
+        Ok(string) => string,
+    };
+
+    CString::new("Hello ".to_owned() + recipient).unwrap().into_raw()
+}
+
+
+#[cfg(target_os="android")]
+#[allow(non_snake_case)]
+pub mod android {
+    extern crate jni;
+
+    use super::*;
+    use self::jni::JNIEnv;
+    use self::jni::objects::{JClass, JString};
+    use self::jni::sys::{jstring};
+
+    #[no_mangle]
+    pub unsafe extern fn Java_com_example_greetings_RustGreetings_greeting(mut env: JNIEnv, _: JClass, java_pattern: JString) -> jstring {
+        // Our Java companion code might pass-in "world" as a string, hence the name.
+        let world = rust_greeting(env.get_string(&java_pattern).expect("invalid pattern string").as_ptr());
+        // Retake pointer so that we can use it below and allow memory to be freed when it goes out of scope.
+        let world_ptr = CString::from_raw(world);
+        let output = env.new_string(world_ptr.to_str().unwrap()).expect("Couldn't create java string!");
+
+        **output
+    }
+}
+Datei rust/cargo.toml sollte folgenden Inhalt haben:
+
+[package]
+name = "rust"
+version = "0.1.0"
+edition = "2021"
+
+
+[target.'cfg(target_os="android")'.dependencies]
+jni = { version = "0.21.1", default-features = false }
+
+[lib]
+crate-type = ["dylib"]
+
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+neue Datei rust/Makefile erstellen:
+
+.PHONY: build
+build:
+    cargo build --target aarch64-linux-android --release
+    cp /home/mark/greetings/rust/target/aarch64-linux-android/release/librust.so /home/mark/greetings/android/Greetings/app/src/main/jniLibs/arm64-v8a/librust.so
+    cargo build --target armv7-linux-androideabi --release
+    cp /home/mark/greetings/rust/target/armv7-linux-androideabi/release/librust.so /home/mark/greetings/android/Greetings/app/src/main/jniLibs/armeabi-v7a/librust.so
+    cargo build --target i686-linux-android --release
+    cp /home/mark/greetings/rust/target/i686-linux-android/release/librust.so /home/mark/greetings/android/Greetings/app/src/main/jniLibs/x86/librust.so
+Erstelle neues Android Studio Projekt mit Project location: greetings/android.
+
+Neue Java Klasse RustGreetings erstellen, Klasse sollte in app/src/main/java/com.example.greetings/ sein.
+
+Inhalt von RustGreetings.java:
+
+package com.example.greetings;
+
+public class RustGreetings {
+
+    private static native String greeting(final String pattern);
+
+    public String sayHello(String to) {
+        return greeting(to);
+    }
+}
+Inhalt von MainActivity.kt : MainActivity Klasse:
+
+class MainActivity : ComponentActivity() {
+
+    init {
+        System.loadLibrary("rust")
+    }
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+
+        var g = RustGreetings()
+        var r = g.sayHello("world")
+
+        setContent {
+            GreetingsTheme {
+                // A surface container using the 'background' color from the theme
+                Surface(
+                    modifier = Modifier.fillMaxSize(),
+                    color = MaterialTheme.colorScheme.background
+                ) {
+                    Greeting(r)
+                }
+            }
+        }
+    }
+}
+Erstelle jniLibs ordner in "android/Greetings/app/src/main":
+
+mkdir jniLibs
+mkdir jniLibs/arm64-v8a
+mkdir jniLibs/armeabi-v7a
+mkdir jniLibs/x86
+Rust Library Compilen und in jniLibs verschieben
+
+$ cd $HOME/greetings/rust
+$ make build
+Jetzt kann man die App in Android Studio starten.
+
+(größtenteils aus https://mozilla.github.io/firefox-browser-architecture/experiments/2017-09-21-rust-on-android.html mit paar Änderungen)
+
+Voraussetzungen
+Rust ist durch Rustup (https://rustup.rs/) installiert
+Android Studio is installiert
+Setup
+In Android Studio:
+File > Settings > Languages & Frameworks > Android SDK > SDK Tools
+installiere:
+
+Android SDK Build-Tools
+NDK
+CMake
+Neuen Ordner für Projekt erstellen:
+
+$ mkdir greetings
+$ mkdir greetings/android
+$ mkdir greetings/rust
+$ mkdir greetings/NDK
+$ cd greetings
+Datei env.bash erstellen mit folgendem Inhalt:
+
+export ANDROID_HOME=$HOME/Android/Sdk
+export NDK_HOME=$ANDROID_HOME/ndk/26.2.11394342
+Umgebungsvariablen laden:
+
+$ source env.bash
+Toolchain installieren:
+
+${NDK_HOME}/build/tools/make_standalone_toolchain.py --api 26 --arch arm64 --install-dir NDK/arm64
+${NDK_HOME}/build/tools/make_standalone_toolchain.py --api 26 --arch arm --install-dir NDK/arm
+${NDK_HOME}/build/tools/make_standalone_toolchain.py --api 26 --arch x86 --install-dir NDK/x86
+Warnung das diese Methode veraltet ist ignorieren.
+
+Neue Datei cargo-config.toml erstellen
+
+[target.aarch64-linux-android]
+ar = "<project path>/greetings/NDK/arm64/bin/aarch64-linux-android-ar"
+linker = "<project path>/greetings/NDK/arm64/bin/aarch64-linux-android-clang"
+
+[target.armv7-linux-androideabi]
+ar = "<project path>/greetings/NDK/arm/bin/arm-linux-androideabi-ar"
+linker = "<project path>/greetings/NDK/arm/bin/arm-linux-androideabi-clang"
+
+[target.i686-linux-android]
+ar = "<project path>/greetings/NDK/x86/bin/i686-linux-android-ar"
+linker = "<project path>/greetings/NDK/x86/bin/i686-linux-android-clang"
+Datei kopieren:
+
+$ cp cargo-config.toml ~/.cargo/config
+Rust Compiler für android installieren:
+
+$ rustup target add aarch64-linux-android armv7-linux-androideabi i686-linux-android
+Neues Rust Projekt erstellen:
+
+cargo new rust
+Datei rust/src/lib.rs mit folgendem Inhalt erstellen:
+
+use std::os::raw::{c_char};
+use std::ffi::{CString, CStr};
+
+#[no_mangle]
+pub extern fn rust_greeting(to: *const c_char) -> *mut c_char {
+    let c_str = unsafe { CStr::from_ptr(to) };
+    let recipient = match c_str.to_str() {
+        Err(_) => "there",
+        Ok(string) => string,
+    };
+
+    CString::new("Hello ".to_owned() + recipient).unwrap().into_raw()
+}
+
+
+#[cfg(target_os="android")]
+#[allow(non_snake_case)]
+pub mod android {
+    extern crate jni;
+
+    use super::*;
+    use self::jni::JNIEnv;
+    use self::jni::objects::{JClass, JString};
+    use self::jni::sys::{jstring};
+
+    #[no_mangle]
+    pub unsafe extern fn Java_com_example_greetings_RustGreetings_greeting(mut env: JNIEnv, _: JClass, java_pattern: JString) -> jstring {
+        // Our Java companion code might pass-in "world" as a string, hence the name.
+        let world = rust_greeting(env.get_string(&java_pattern).expect("invalid pattern string").as_ptr());
+        // Retake pointer so that we can use it below and allow memory to be freed when it goes out of scope.
+        let world_ptr = CString::from_raw(world);
+        let output = env.new_string(world_ptr.to_str().unwrap()).expect("Couldn't create java string!");
+
+        **output
+    }
+}
+Datei rust/cargo.toml sollte folgenden Inhalt haben:
+
+[package]
+name = "rust"
+version = "0.1.0"
+edition = "2021"
+
+
+[target.'cfg(target_os="android")'.dependencies]
+jni = { version = "0.21.1", default-features = false }
+
+[lib]
+crate-type = ["dylib"]
+
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+neue Datei rust/Makefile erstellen:
+
+.PHONY: build
+build:
+    cargo build --target aarch64-linux-android --release
+    cp /home/mark/greetings/rust/target/aarch64-linux-android/release/librust.so /home/mark/greetings/android/Greetings/app/src/main/jniLibs/arm64-v8a/librust.so
+    cargo build --target armv7-linux-androideabi --release
+    cp /home/mark/greetings/rust/target/armv7-linux-androideabi/release/librust.so /home/mark/greetings/android/Greetings/app/src/main/jniLibs/armeabi-v7a/librust.so
+    cargo build --target i686-linux-android --release
+    cp /home/mark/greetings/rust/target/i686-linux-android/release/librust.so /home/mark/greetings/android/Greetings/app/src/main/jniLibs/x86/librust.so
+Erstelle neues Android Studio Projekt mit Project location: greetings/android.
+
+Neue Java Klasse RustGreetings erstellen, Klasse sollte in app/src/main/java/com.example.greetings/ sein.
+
+Inhalt von RustGreetings.java:
+
+package com.example.greetings;
+
+public class RustGreetings {
+
+    private static native String greeting(final String pattern);
+
+    public String sayHello(String to) {
+        return greeting(to);
+    }
+}
+Inhalt von MainActivity.kt : MainActivity Klasse:
+
+class MainActivity : ComponentActivity() {
+
+    init {
+        System.loadLibrary("rust")
+    }
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+
+        var g = RustGreetings()
+        var r = g.sayHello("world")
+
+        setContent {
+            GreetingsTheme {
+                // A surface container using the 'background' color from the theme
+                Surface(
+                    modifier = Modifier.fillMaxSize(),
+                    color = MaterialTheme.colorScheme.background
+                ) {
+                    Greeting(r)
+                }
+            }
+        }
+    }
+}
+Erstelle jniLibs ordner in "android/Greetings/app/src/main":
+
+mkdir jniLibs
+mkdir jniLibs/arm64-v8a
+mkdir jniLibs/armeabi-v7a
+mkdir jniLibs/x86
+Rust Library Compilen und in jniLibs verschieben
+
+$ cd $HOME/greetings/rust
+$ make build
+Jetzt kann man die App in Android Studio starten.

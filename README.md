@@ -1,7 +1,7 @@
 
 # Rust Wrapper for Samsung Knox Vault
 
-This Repo contains a Wrapper that is used to store cryptographic keys from applications in a Trusted Execution Environment (TEE). Specifically, this project is focused on Samsung Knox Vault as the TEE.
+This Repo contains a Wrapper that is used to perfom cryptogrphic operations for mobile applications in a Trusted Execution Environment (TEE) on Android devices. Specifically, this project is focused on Samsung Knox Vault as the TEE. The interface to the mobile application is provided in Rust, while the communication with the TEE will be done using the Android Keychain API. 
 
 Please note that this project is still in early development.
 

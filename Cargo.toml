@@ -12,4 +12,4 @@ path = "src/HelloWorld.rs"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-
+crypto-layer = { git = "https://github.com/nmshd/rust-crypto.git" }

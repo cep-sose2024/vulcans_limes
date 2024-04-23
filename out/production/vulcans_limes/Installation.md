@@ -1,17 +1,14 @@
 # Installation Guide
+## Installing Android Studio
 
-## Installing Android Studio + RustRover
-The easiest way to install both IDEs is to use the IntelliJ Tool Box, where you can install both IDEs with a single click each.
-Alternatively you can also refer to the (Andriod CodeLab guide)[https://developer.android.com/codelabs/basic-android-kotlin-compose-install-android-studio#0], and the (RustRover download page)[https://www.jetbrains.com/rust/nextversion/].
-After installing RustRover, you will need to install RustUp in order to compile Rust code. This can be done from within RustRover: After starting to create a new project, there will be a button below the toolchain location selection. Pressing it will install RustUp. Alternatively you can also install RustUp directly from (their page)[https://rustup.rs/].
-
+## Installing Rust
 
 ## Run first Test in Android Studio
 The Goal of this section is to test Android Studio and run a "Hello World"-App on a real device. We will use a USB connection to get the app onto the device, although WiFi should also be possible.
 - make sure that USB debugging is enabled on the phone. Refer to [this guide](https://developer.android.com/studio/debug/dev-options) if necessary
 - install the proper driver for your smartphone on your PC / Laptop according to [this list](https://developer.android.com/studio/run/oem-usb#Drivers)
 - Open a new project in Android Studio and select Phone/Tablet on the left and use "Empty Activity" as the template
-- plug your phone into your PC / Laptop with a USB cable capable of transmitting data
+- plug your phone into your PC / Laptop with a usb cable capable of transmitting data
 - you should be able to see your phone's storage in your file explorer
 - in Android Studio, go to "Running Devices" (on the top right by default), click on the plus sign and select your phone
 - the screen of your phone will be mirrored inside Android Studio

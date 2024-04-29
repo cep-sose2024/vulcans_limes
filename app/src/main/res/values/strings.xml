@@ -1,0 +1,9 @@
+<resources>
+    <string name="app_name">KeystoreStuffs</string>
+    <string name="action_settings">Settings</string>
+    <string name="gen_key">Generate Key</string>
+    <string name="keytext">this is where the keys would be… \n\nIF I HAD ANY:\n</string>
+    <!-- Strings used for fragments for navigation -->
+
+
+</resources>

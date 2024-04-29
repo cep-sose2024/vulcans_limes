@@ -3,11 +3,11 @@ plugins {
 }
 
 android {
-    namespace = "com.example.keystorestuffs"
+    namespace = "com.example.vulcans_limes"
     compileSdk = 34
 
     defaultConfig {
-        applicationId = "com.example.keystorestuffs"
+        applicationId = "com.example.vulcans_limes"
         minSdk = 28
         targetSdk = 34
         versionCode = 1

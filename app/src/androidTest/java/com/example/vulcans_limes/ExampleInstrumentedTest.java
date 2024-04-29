@@ -1,4 +1,4 @@
-package app.src.androidTest.java.com.example.keystorestuffs;
+package com.example.vulcans_limes;
 
 import android.content.Context;
 

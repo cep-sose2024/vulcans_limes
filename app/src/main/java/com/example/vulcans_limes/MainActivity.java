@@ -1,6 +1,11 @@
-package app.src.main.java.com.example.keystorestuffs;
+package com.example.vulcans_limes;
 
 import android.os.Bundle;
+import android.security.keystore.KeyGenParameterSpec;
+import android.security.keystore.KeyProperties;
+import android.widget.Button;
+import android.widget.ScrollView;
+import android.widget.TextView;
 
 import androidx.appcompat.app.AppCompatActivity;
 
@@ -8,20 +13,11 @@ import java.io.IOException;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.Key;
 import java.security.KeyStore;
+import java.security.NoSuchAlgorithmException;
+import java.security.NoSuchProviderException;
 import java.security.cert.CertificateException;
 import java.util.Arrays;
 import java.util.Base64;
-
-
-import android.security.keystore.KeyGenParameterSpec;
-import android.security.keystore.KeyProperties;
-import android.widget.ScrollView;
-import android.widget.TextView;
-import android.widget.Button;
-
-import java.security.NoSuchAlgorithmException;
-import java.security.NoSuchProviderException;
-
 
 import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
@@ -71,7 +67,7 @@ public class MainActivity extends AppCompatActivity {
         // Generates a AES key and prints provider and location info
         //genKeyBtn.setOnClickListener(view -> keyText.setText(keyText.getText() + "\n" + genKey()));
         // Just for Testing the AES Key, giving out all the information
-        //genKeyBtn.setOnClickListener(view -> keyText.setText(keyText.getText() + "\n" + keyTestAES()));
+        genKeyBtn.setOnClickListener(view -> keyText.setText(keyText.getText() + "\n" + keyTestAES()));
     }
 
     /**

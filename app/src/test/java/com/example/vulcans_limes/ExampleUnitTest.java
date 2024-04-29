@@ -1,4 +1,4 @@
-package app.src.test.java.com.example.keystorestuffs;
+package com.example.vulcans_limes;
 
 import org.junit.Test;
 

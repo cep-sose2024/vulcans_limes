@@ -24,5 +24,8 @@ In order to use the Java Native Interface, and use Rust Code within our app, you
 - You will need to configure cargo further by using this command: `rustup target add aarch64-linux-android armv7-linux-androideabi i686-linux-android` (The "linux" in this command refers to the phone architecture, not your development machine. You can use this command on Windows as well)
 
 ## Building and running the project
-In order to compile and run the project, execute the run.sh (Linux) or run.bat (Windows) file in /app. This will compile the rust code into a dynamic library, which is then used by Java. After that, the script will start gradle to build the whole project and install it on your connected device for testing.
-You will need to adjust the path to the NDK inside the script, instructions for that can be found in the script itself.
+Now you are ready to compile the project for the first time. Clone it into Android Studio, then you are ready to start.
+
+In order to compile and run the app on your phone, execute the run.sh (Linux) or run.bat (Windows) file in /app. This will compile the Rust code into a dynamic library, which is then used by Java. After that, the script will start Gradle to build the whole project and install it on your connected device for testing.
+
+You will need to adjust the path to the NDK inside the script, instructions for that can be found in the script itself. Running the script for the first time may take a few minutes, subsequent builds will be faster.

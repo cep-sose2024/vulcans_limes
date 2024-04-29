@@ -19,5 +19,6 @@ The Goal of this section is to test Android Studio and run a "Hello World"-App o
 
 ## Further necessary tools
 In order to use the Java Native Interface, and use Rust Code within our app, you will need some more tools:
-- The Android NDK (Native Development Kit) can be installed from within Android Studio. Go to Settings > Languages & Frameworks > Android SDK > SDK Tools and select and install the NDK
+- You will need the Android NDK (Native Development Kit) to build and run the project. The NDK can be installed from within Android Studio: Go to Settings > Languages & Frameworks > Android SDK > SDK Tools and select and install the NDK
 - Cargo and [cargo-ndk](https://docs.rs/crate/cargo-ndk/3.5.4) are necessary to compile the Rust code in a format usable by Android. Cargo should already be installed by RustUp, cargo-ndk can be installed with `cargo install cargo-ndk`
+- You will need to configure cargo further by using this command: `rustup target add aarch64-linux-android armv7-linux-androideabi i686-linux-android`

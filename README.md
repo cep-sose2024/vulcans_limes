@@ -50,3 +50,4 @@ this project is pubilshed under the MIT Licence. For details check the [LICENCE 
 ## Acknowledgements
 
  - [j&s-soft GmbH](https://github.com/js-soft) for the project goal and the crypto abstaction layer provided by them
+ - We utilise [Robusta](https://github.com/giovanniberti/robusta) to help with the Rust - Java conversion

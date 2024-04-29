@@ -8,6 +8,9 @@ Please note that this project is still in early development.
 ## Goal
 The eventual project goal is to provide an implementation to store cryptographic keys within Samsung Knox Vault. In order to do so, the Android Keystore API will be used to communicate with the SE. Since this API utilizes Java, the Java Native Interface (JNI) will be used to facilitate communication between Java and Rust.
 
+## Architecture
+![Architecture diagram](/res/Architecture_Simple.png)
+
 ## Motivation
 This project is part of a student development project at Hochschule Mannheim (HSMA). The project goal is provided by j&s-soft GmbH as part of their project enmeshed. 
 

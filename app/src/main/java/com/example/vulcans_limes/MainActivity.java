@@ -6,6 +6,7 @@ import android.security.keystore.KeyProperties;
 import android.widget.Button;
 import android.widget.ScrollView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 
@@ -16,6 +17,7 @@ import java.security.KeyStore;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
 import java.security.cert.CertificateException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
 
@@ -77,6 +79,13 @@ public class MainActivity extends AppCompatActivity {
      * @throws NoSuchAlgorithmException if there is no such algorithm for generating the key.
      */
     public String keyTestAES() {
+        //TODO remove test call
+        ArrayList<Integer> temp = new ArrayList<>();
+        temp.add(1);
+        ArrayList<String> out = RustDef.special(temp, 2);
+        Toast.makeText(getApplicationContext(), (CharSequence) out.toString(), Toast.LENGTH_LONG).show();
+
+
         SecretKey sk1;
         try {
             sk1 = KeyGenerator.getInstance("AES").generateKey();

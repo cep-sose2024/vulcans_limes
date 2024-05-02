@@ -24,7 +24,6 @@ import java.util.Base64;
 import javax.crypto.Cipher;
 import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
-import javax.crypto.spec.IvParameterSpec;
 
 /**
  * Main Activity for Android Device App.
@@ -34,13 +33,6 @@ import javax.crypto.spec.IvParameterSpec;
  * @author Erik Fribus
  */
 public class MainActivity extends AppCompatActivity {
-
-    public static final String TRANSFORMATION = KeyProperties.KEY_ALGORITHM_AES + "/" + KeyProperties.BLOCK_MODE_CBC + "/"
-            + KeyProperties.ENCRYPTION_PADDING_PKCS7;
-    public static final String KEY_NAME = "key";
-    public static final String ANDROID_KEY_STORE = "AndroidKeyStore";
-
-    byte[] encryptCipher;
     /**
      * @param keyText displaying Text on the devices screen
      */
@@ -82,28 +74,24 @@ public class MainActivity extends AppCompatActivity {
         genKey();
         // Testing Encrypt Decript functionality
         byte [] bArray = new byte[] {2, 3, 4, 1};
-        byte[] bDecArray;
-        byte [] bEncArray;
         System.out.println("Before Encryption: " + Arrays.toString(bArray));
         try {
-            bEncArray = encryptData(bArray);
+            byte [] bEncArray = encryptData(bArray);
             System.out.println("After Encryption: " + Arrays.toString(bEncArray));
-        } catch (Exception e) {
-            System.out.println("ERROR could not ENCRYPT!");
-            throw new RuntimeException(e);
-        }
-            try {
-                bDecArray = decryptData(bEncArray);
-                System.out.println("After Decryption: " + Arrays.toString(bDecArray));
-            } catch (Exception e){
-                System.out.println("ERROR could not DECRYPT!");
-                throw new RuntimeException(e);
-            }
-            if (Arrays.equals(bArray, bDecArray)){
+            byte[] bDecArray = decryptData(bEncArray);
+            System.out.println("After Decryption: " + Arrays.toString(bDecArray));
+            if (bArray.equals(bDecArray)){
                 System.out.println("IT LIVES!!!");
             } else {
                 System.out.println("ITS DEAD :(");
             }
+        } catch (Exception e) {
+            System.out.println("ERROR" + "Could not encrypt!");
+            throw new RuntimeException(e);
+        }
+
+
+
     }
 
     /**
@@ -173,7 +161,7 @@ public class MainActivity extends AppCompatActivity {
      */
     public boolean initKeyGen() {
         try {
-            keyStore = KeyStore.getInstance(ANDROID_KEY_STORE);
+            keyStore = KeyStore.getInstance("AndroidKeyStore");
         } catch (Exception e) {
             e.printStackTrace();
             System.out.println("KeyStore.getInstance() :: " + "initKey(): "
@@ -183,7 +171,7 @@ public class MainActivity extends AppCompatActivity {
         }
         try {
             // Creates the KeyGenerator with the AES algorithm
-            keyGen = KeyGenerator.getInstance(KeyProperties.KEY_ALGORITHM_AES, ANDROID_KEY_STORE);
+            keyGen = KeyGenerator.getInstance(KeyProperties.KEY_ALGORITHM_AES, "AndroidKeyStore");
             // initializes the KeyGenerator with a, probably and hopefully, true random number
             // SecureRandom secRan = new SecureRandom();
         } catch (NoSuchAlgorithmException | NoSuchProviderException e) {
@@ -198,7 +186,7 @@ public class MainActivity extends AppCompatActivity {
         try {
             keyStore.load(null);
             keyGen.init(new
-                    KeyGenParameterSpec.Builder(KEY_NAME,
+                    KeyGenParameterSpec.Builder("key1",
                     KeyProperties.PURPOSE_ENCRYPT |
                             KeyProperties.PURPOSE_DECRYPT)
                     .setBlockModes(KeyProperties.BLOCK_MODE_CBC)
@@ -219,32 +207,19 @@ public class MainActivity extends AppCompatActivity {
         return true;
     }
 
-    /**
-     * This method encrypts a data byte array
-     * @param data the byte array to encrypt
-     * @return the encrypted byte array
-     * @throws Exception in case the algorithm and providers are not existend, aswell as the keyname
-     */
     public byte[] encryptData(byte[] data) throws Exception {
-        Cipher cipher = Cipher.getInstance(TRANSFORMATION);
+        Cipher cipher = Cipher.getInstance("AES/CBC/PKCS7Padding");
         keyStore.load(null);
-        SecretKey secretKey = (SecretKey) keyStore.getKey(KEY_NAME, null);
+        SecretKey secretKey = (SecretKey) keyStore.getKey("key1", null);
         cipher.init(Cipher.ENCRYPT_MODE, secretKey);
-        encryptCipher = cipher.getIV();
         return cipher.doFinal(data);
     }
 
-    /**
-     * this method decrypts a data byte array
-     * @param encryptedData the encrypted array to decrypt
-     * @return the decrypted data byte array
-     * @throws Exception if the algorithm or provider are not existend, aswell as the key. Also throws an Exception if the IV encryptCipher is null.
-     */
     public byte[] decryptData(byte[] encryptedData) throws Exception {
-        Cipher cipher = Cipher.getInstance(TRANSFORMATION);
+        Cipher cipher = Cipher.getInstance("AES/CBC/PKCS7Padding");
         keyStore.load(null);
-        SecretKey secretKey = (SecretKey) keyStore.getKey(KEY_NAME, null);
-        cipher.init(Cipher.DECRYPT_MODE, secretKey, new IvParameterSpec(encryptCipher));
+        SecretKey secretKey = (SecretKey) keyStore.getKey("key1", null);
+        cipher.init(Cipher.DECRYPT_MODE, secretKey);
         return cipher.doFinal(encryptedData);
     }
 }

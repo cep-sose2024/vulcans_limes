@@ -70,25 +70,25 @@ public class MainActivity extends AppCompatActivity {
         // Generates a AES key and prints provider and location info
         //genKeyBtn.setOnClickListener(view -> keyText.setText(keyText.getText() + "\n" + genKey()));
         // Just for Testing the AES Key, giving out all the information
-        // genKeyBtn.setOnClickListener(view -> keyText.setText(keyText.getText() + "\n" + keyTestAES()));
+        genKeyBtn.setOnClickListener(view -> keyText.setText(keyText.getText() + "\n" + keyTestAES()));
         genKey();
         // Testing Encrypt Decript functionality
-        byte [] bArray = new byte[] {2, 3, 4, 1};
-        System.out.println("Before Encryption: " + Arrays.toString(bArray));
-        try {
-            byte [] bEncArray = encryptData(bArray);
-            System.out.println("After Encryption: " + Arrays.toString(bEncArray));
-            byte[] bDecArray = decryptData(bEncArray);
-            System.out.println("After Decryption: " + Arrays.toString(bDecArray));
-            if (bArray.equals(bDecArray)){
-                System.out.println("IT LIVES!!!");
-            } else {
-                System.out.println("ITS DEAD :(");
-            }
-        } catch (Exception e) {
-            System.out.println("ERROR" + "Could not encrypt!");
-            throw new RuntimeException(e);
-        }
+//        byte [] bArray = new byte[] {2, 3, 4, 1};
+//        System.out.println("Before Encryption: " + Arrays.toString(bArray));
+//        try {
+//            byte [] bEncArray = encryptData(bArray);
+//            System.out.println("After Encryption: " + Arrays.toString(bEncArray));
+//            byte[] bDecArray = decryptData(bEncArray);
+//            System.out.println("After Decryption: " + Arrays.toString(bDecArray));
+//            if (bArray.equals(bDecArray)){
+//                System.out.println("IT LIVES!!!");
+//            } else {
+//                System.out.println("ITS DEAD :(");
+//            }
+//        } catch (Exception e) {
+//            System.out.println("ERROR" + "Could not encrypt!");
+//            throw new RuntimeException(e);
+//        }
 
 
 
@@ -101,13 +101,7 @@ public class MainActivity extends AppCompatActivity {
      * @throws NoSuchAlgorithmException if there is no such algorithm for generating the key.
      */
     public String keyTestAES() {
-        //TODO remove test call
-        ArrayList<Integer> temp = new ArrayList<>();
-        temp.add(1);
-        ArrayList<String> out = RustDef.special(temp, 2);
-        Toast.makeText(getApplicationContext(), (CharSequence) out.toString(), Toast.LENGTH_LONG).show();
-
-
+        
         SecretKey sk1;
         try {
             sk1 = KeyGenerator.getInstance("AES").generateKey();

@@ -15,4 +15,8 @@ class RustDef {
         System.loadLibrary("vulcanslimes");
     }
 
+    static void callback(){
+        System.out.println("Callback successful");
+    }
+
 }

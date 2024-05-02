@@ -21,6 +21,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
 
+import javax.crypto.Cipher;
 import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
 
@@ -69,7 +70,28 @@ public class MainActivity extends AppCompatActivity {
         // Generates a AES key and prints provider and location info
         //genKeyBtn.setOnClickListener(view -> keyText.setText(keyText.getText() + "\n" + genKey()));
         // Just for Testing the AES Key, giving out all the information
-        genKeyBtn.setOnClickListener(view -> keyText.setText(keyText.getText() + "\n" + keyTestAES()));
+        // genKeyBtn.setOnClickListener(view -> keyText.setText(keyText.getText() + "\n" + keyTestAES()));
+        genKey();
+        // Testing Encrypt Decript functionality
+        byte [] bArray = new byte[] {2, 3, 4, 1};
+        System.out.println("Before Encryption: " + Arrays.toString(bArray));
+        try {
+            byte [] bEncArray = encryptData(bArray);
+            System.out.println("After Encryption: " + Arrays.toString(bEncArray));
+            byte[] bDecArray = decryptData(bEncArray);
+            System.out.println("After Decryption: " + Arrays.toString(bDecArray));
+            if (bArray.equals(bDecArray)){
+                System.out.println("IT LIVES!!!");
+            } else {
+                System.out.println("ITS DEAD :(");
+            }
+        } catch (Exception e) {
+            System.out.println("ERROR" + "Could not encrypt!");
+            throw new RuntimeException(e);
+        }
+
+
+
     }
 
     /**
@@ -183,5 +205,21 @@ public class MainActivity extends AppCompatActivity {
             return false;
         }
         return true;
+    }
+
+    public byte[] encryptData(byte[] data) throws Exception {
+        Cipher cipher = Cipher.getInstance("AES/CBC/PKCS7Padding");
+        keyStore.load(null);
+        SecretKey secretKey = (SecretKey) keyStore.getKey("key1", null);
+        cipher.init(Cipher.ENCRYPT_MODE, secretKey);
+        return cipher.doFinal(data);
+    }
+
+    public byte[] decryptData(byte[] encryptedData) throws Exception {
+        Cipher cipher = Cipher.getInstance("AES/CBC/PKCS7Padding");
+        keyStore.load(null);
+        SecretKey secretKey = (SecretKey) keyStore.getKey("key1", null);
+        cipher.init(Cipher.DECRYPT_MODE, secretKey);
+        return cipher.doFinal(encryptedData);
     }
 }

@@ -2,6 +2,8 @@ package com.example.vulcans_limes;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
@@ -13,8 +15,19 @@ import org.robolectric.RobolectricTestRunner;
 import java.util.Arrays;
 import java.util.Base64;
 
+import org.junit.Before;
+
 @RunWith(RobolectricTestRunner.class)
 public class MainActivityTest {
+
+    //TODO move this test class to a better directory than "example"
+
+    private MainActivity ma;
+
+    @Before
+    public void setUp() {
+        ma = new MainActivity();
+    }
 
     /**
      * This method tests keyTestAES() to check, if the returned String of the generated AES Key is correct.
@@ -22,7 +35,6 @@ public class MainActivityTest {
      */
     @Test
     public void testKeyTestAES() {
-        MainActivity ma = new MainActivity();
         String result = ma.keyTestAES();
 
         assertNotNull(result);
@@ -41,30 +53,51 @@ public class MainActivityTest {
         assertTrue(result.contains("AES Key Base64: " + Base64.getEncoder().encodeToString(aesKey)));
     }
 
+    /**
+     * This method tests genKey() to check, if a key is generated correctly.
+     * @TODO: "AndroidKeyStore not found" and check how a key is written to a string and how it should look like
+     */
     @Test
     public void testGenKey() {
-        MainActivity ma = Robolectric.buildActivity(MainActivity.class).get();
+        //TODO fix "AndroidKeyStore not found" so Test can run
+
         String keyInfo = ma.genKey();
+
         assertNotNull(keyInfo);
-        assertTrue(keyInfo.contains("Key"));
+        assertNotEquals("ERROR", keyInfo);
+
+        //TODO check how a key is written to a string and how it should look like
+        //assertTrue(keyInfo.contains("Key"));
     }
 
+    /**
+     * This method tests initKeyGen() to check, if the key generator was initialized correctly.
+     * @TODO: "AndroidKeyStore not found"
+     */
     @Test
     public void testInitKeyGen() {
-        MainActivity ma = Robolectric.buildActivity(MainActivity.class).get();
         assertTrue(ma.initKeyGen());
     }
 
+    /**
+     * This method tests encryptData(null) and expects a NullPointerException.
+     * @throws NullPointerException
+     */
     @Test(expected = NullPointerException.class)
     public void testEncryptDataWithNullInput() throws Exception {
-        MainActivity ma = Robolectric.buildActivity(MainActivity.class).get();
         ma.encryptData(null);
     }
 
+    /**
+     * This method tests encryptData() and decryptData() with given test data. It expects the test data
+     * to be the same as the decrypted data after encryption.
+     * @throws Exception
+     */
     @Test
     public void testEncryptAndDecryptData() throws Exception {
         MainActivity ma = Robolectric.buildActivity(MainActivity.class).get();
         byte[] testData = "Hello, World!".getBytes();
+        ma.initKeyGen();
         byte[] encryptedData = ma.encryptData(testData);
         assertNotNull(encryptedData);
 

@@ -40,6 +40,7 @@ dependencies {
     implementation(libs.navigation.ui)
     implementation(libs.room.compiler)
     testImplementation(libs.junit)
+    testImplementation(libs.robolectric)
     androidTestImplementation(libs.ext.junit)
     androidTestImplementation(libs.espresso.core)
 

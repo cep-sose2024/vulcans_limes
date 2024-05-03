@@ -9,6 +9,7 @@ constraintlayout = "2.1.4"
 navigationFragment = "2.7.7"
 navigationUi = "2.7.7"
 roomCompiler = "2.6.1"
+robolectric = "4.7.2"
 
 [libraries]
 junit = { group = "junit", name = "junit", version.ref = "junit" }
@@ -20,7 +21,7 @@ constraintlayout = { group = "androidx.constraintlayout", name = "constraintlayo
 navigation-fragment = { group = "androidx.navigation", name = "navigation-fragment", version.ref = "navigationFragment" }
 navigation-ui = { group = "androidx.navigation", name = "navigation-ui", version.ref = "navigationUi" }
 room-compiler = { group = "androidx.room", name = "room-compiler", version.ref = "roomCompiler" }
+robolectric = { group = "org.robolectric", name = "robolectric", version = "4.7.2" }
 
 [plugins]
 androidApplication = { id = "com.android.application", version.ref = "agp" }
-

@@ -1,6 +1,8 @@
 package com.example.vulcans_limes;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+
 /**
  * This class provides the method declarations that are the interface for the JNI.
  * The first part are Rust-methods that can be called from other Java-classes,
@@ -39,15 +41,15 @@ class RustDef {
     //----------------------------------------------------------------------------------------------
     //Rust methods that can be called from Java
 
-     /*
+     /**
     Proof of concept - shows type conversion
     DO NOT USE
      */
     static native ArrayList<String> special(ArrayList<Integer> input1, int input2);
 
-    /*
+    /**
     Proof of concept method - shows callback from Rust to a java method
-    DO NOT USE
+    ONLY USE FOR TESTING
      */
     static native void callRust();
 
@@ -72,20 +74,19 @@ class RustDef {
     /**
      * Creates a new cryptographic key identified by `key_id`.
      * <p>
-     * This method generates a new cryptographic key within the TPM, using the specified
-     * algorithm, symmetric algorithm, hash algorithm, and key usages. The key is made persistent
+     * This method generates a new cryptographic key within the TPM. The key is made persistent
      * and associated with the provided `key_id`.
      * @param key_id - String that uniquely identifies the key so that it can be retrieved later
      */
     static void create_key(String key_id) {
         //TODO @Erik
+        System.out.println("Create Key angekommen: "+ key_id); //TODO remove
     }
 
     /**
      * Loads an existing cryptographic key identified by `key_id`.
      * <p>
-     * This method loads an existing cryptographic key from the TPM, using the specified
-     * algorithm, symmetric algorithm, hash algorithm, and key usages. The loaded key is
+     * This method loads an existing cryptographic key from the TPM. The loaded key is
      * associated with the provided `key_id`.
      *
      * @param key_id - String that uniquely identifies the key so that it can be retrieved later
@@ -121,6 +122,7 @@ class RustDef {
      */
     static byte[] sign_data(byte[] data) {
         //TODO @Erik
+        System.out.println("Recieved data in sign_data: "+ Arrays.toString(data));
         return null;
     }
 

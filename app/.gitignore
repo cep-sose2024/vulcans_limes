@@ -1,1 +1,7 @@
-/build
+/shelf/
+/workspace.xml
+*.log
+*.iml
+*idea/
+build/
+.gradle/

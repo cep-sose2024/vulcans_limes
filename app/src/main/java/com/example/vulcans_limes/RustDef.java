@@ -1,6 +1,6 @@
 package com.example.vulcans_limes;
 
-import java.util.*;
+import java.util.ArrayList;
 /**
  * This class provides the method declarations that are the interface for the JNI.
  * The first part are Rust-methods that can be called from other Java-classes,

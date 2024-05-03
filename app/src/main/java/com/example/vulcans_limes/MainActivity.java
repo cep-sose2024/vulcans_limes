@@ -37,7 +37,8 @@ import javax.crypto.spec.IvParameterSpec;
 /**
  * Main Activity for Android Device App.
  * The class displays and manages the devices screen.
- * It also generates a key which, depending on what method gets used, is stored in a KeyStore
+ * It also generates a key which, depending on what method gets used, is stored in a KeyStore.
+ * This is just an example test app, for testing of our methods.
  *
  * @author Erik Fribus
  */
@@ -73,17 +74,21 @@ public class MainActivity extends AppCompatActivity {
         imageView = findViewById(R.id.idIVimage);
         encButton = findViewById(R.id.idBtnEncrypt);
         decButton = findViewById(R.id.idBtnDecrypt);
+
+        // Activity for encryption on button press
         launcher = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(),result -> {
             if (result.getResultCode() == RESULT_OK) {
                 Intent data = result.getData();
             }
         } );
 
+        // When encrypt button is pressed
         encButton.setOnClickListener(v -> {
             Intent intent = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
             launcher.launch(intent);
         });
 
+        // When decrypt button is pressed
         decButton.setOnClickListener(v -> {
             try {
               // TODO:  decrypt();
@@ -94,39 +99,44 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
+    /**
+     * This method gets called upon when an Action is launched (e.g. the encrypt button is pressed)
+     * The user picks a picture out of their Media file system
+     * @param requestCode The integer request code originally supplied to
+     *                    startActivityForResult(), allowing you to identify who this
+     *                    result came from.
+     * @param resultCode The integer result code returned by the child activity
+     *                   through its setResult().
+     * @param data An Intent, which can return result data to the caller
+     *               (various data can be attached to Intent "extras").
+     *
+     */
     @Override
     protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
-        // on below line getting image uri
         if (requestCode == 1 && resultCode == RESULT_OK && null != data) {
-            // on below line getting image uri.
             Uri imgUri = data.getData();
 
-            // on below line getting file path
             String[] filePath = {MediaStore.Images.Media.DATA};
 
-            // on below line creating a cursor and moving to next.
             Cursor cursor = getContentResolver().query(imgUri, filePath, null, null, null);
             cursor.moveToFirst();
 
-            // on below line creating an index for column
             int columnIndex = cursor.getColumnIndex(filePath[0]);
 
-            // on below line creating a string for path.
             String picPath = cursor.getString(columnIndex);
 
-            // on below line closing our cursor.
             cursor.close();
 
-            // on below line we are encrypting our image.
             try {
-                encrypt(picPath);
-                // on below line we are encrypting our image.
+            // TODO: Splice File into Byte array for encryption    encrypt(picPath);
                 Toast.makeText(this, "Image encrypted..", Toast.LENGTH_SHORT).show();
             } catch (Exception e) {
                 e.printStackTrace();
                 Toast.makeText(this, "Fail to encrypt image : " + e, Toast.LENGTH_SHORT).show();
             }
+        }
+    }
 
     /**
      * This class has been made for testing. It generates a 16-Byte AES key and builds a String with all the keys information.
@@ -174,8 +184,8 @@ public class MainActivity extends AppCompatActivity {
 
     /**
      * This method initializes the KeyGenerator for further use. It gets build with the instructions
-     * to generate an AES key, provided by the AndroidKeyStore, save it in the AndroidKeyStore,
-     * its purpose is to encrypt or decrypt only with the CBC block module aswell as with the
+     * to generate AES keys, provided by the AndroidKeyStore, saved in the AndroidKeyStore,
+     * its purpose is to encrypt or decrypt only with the CBC block module as well as with the
      * PKCS#7 encryption padding scheme.
      *
      * @return true or false, depending on if the KeyGenerator got initialized correctly.

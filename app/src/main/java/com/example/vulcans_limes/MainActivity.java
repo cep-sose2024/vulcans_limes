@@ -26,41 +26,32 @@ import java.security.KeyStore;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
 import java.security.cert.CertificateException;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
 
 import javax.crypto.Cipher;
 import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
+import javax.crypto.spec.IvParameterSpec;
 
 /**
  * Main Activity for Android Device App.
  * The class displays and manages the devices screen.
- * It also generates a key which, depending on what method gets used, is stored in a KeyStore
+ * It also generates a key which, depending on what method gets used, is stored in a KeyStore.
+ * This is just an example test app, for testing of our methods.
  *
  * @author Erik Fribus
  */
 public class MainActivity extends AppCompatActivity {
-    /**
-     * @param keyText displaying Text on the devices screen
-     */
-    TextView keyText;
-    /**
-     * @param genKeyBtn generates a key upon activation
-     */
-    Button genKeyBtn;
-    /**
-     * @param scView for the function of scrolling on the device
-     */
-    ScrollView scView;
-    /**
-     * @param keyGen KeyGenerator for generating keys
-     */
-    KeyGenerator keyGen;
-    /**
-     * @param keyStore stores keys inside the KeyStore
-     */
+
+    public static final String TRANSFORMATION = KeyProperties.KEY_ALGORITHM_AES +
+                                                "/" + KeyProperties.BLOCK_MODE_CBC + "/"
+                                                 + KeyProperties.ENCRYPTION_PADDING_PKCS7;
+    public static final String KEY_NAME = "key";
+    public static final String ANDROID_KEY_STORE = "AndroidKeyStore";
+
+    byte[] encryptCipher;
+
     KeyStore keyStore;
 
     KeyGenerator keyGen;
@@ -80,34 +71,71 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        keyText = findViewById(R.id.keyText);
-        genKeyBtn = findViewById(R.id.genkey);
-        scView = findViewById(R.id.scrollView);
-        // Generates a AES key and prints provider and location info
-        //genKeyBtn.setOnClickListener(view -> keyText.setText(keyText.getText() + "\n" + genKey()));
-        // Just for Testing the AES Key, giving out all the information
-        // genKeyBtn.setOnClickListener(view -> keyText.setText(keyText.getText() + "\n" + keyTestAES()));
-        genKey();
-        // Testing Encrypt Decript functionality
-        byte [] bArray = new byte[] {2, 3, 4, 1};
-        System.out.println("Before Encryption: " + Arrays.toString(bArray));
-        try {
-            byte [] bEncArray = encryptData(bArray);
-            System.out.println("After Encryption: " + Arrays.toString(bEncArray));
-            byte[] bDecArray = decryptData(bEncArray);
-            System.out.println("After Decryption: " + Arrays.toString(bDecArray));
-            if (bArray.equals(bDecArray)){
-                System.out.println("IT LIVES!!!");
-            } else {
-                System.out.println("ITS DEAD :(");
+        imageView = findViewById(R.id.idIVimage);
+        encButton = findViewById(R.id.idBtnEncrypt);
+        decButton = findViewById(R.id.idBtnDecrypt);
+
+        // Activity for encryption on button press
+        launcher = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(),result -> {
+            if (result.getResultCode() == RESULT_OK) {
+                Intent data = result.getData();
             }
-        } catch (Exception e) {
-            System.out.println("ERROR" + "Could not encrypt!");
-            throw new RuntimeException(e);
+        } );
+
+        // When encrypt button is pressed
+        encButton.setOnClickListener(v -> {
+            Intent intent = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
+            launcher.launch(intent);
+        });
+
+        // When decrypt button is pressed
+        decButton.setOnClickListener(v -> {
+            try {
+              // TODO:  decrypt();
+            } catch (Exception e) {
+                Toast.makeText(MainActivity.this, "Fail to decrypt image", Toast.LENGTH_SHORT).show();
+                e.printStackTrace();
+            }
+        });
+    }
+
+    /**
+     * This method gets called upon when an Action is launched (e.g. the encrypt button is pressed)
+     * The user picks a picture out of their Media file system
+     * @param requestCode The integer request code originally supplied to
+     *                    startActivityForResult(), allowing you to identify who this
+     *                    result came from.
+     * @param resultCode The integer result code returned by the child activity
+     *                   through its setResult().
+     * @param data An Intent, which can return result data to the caller
+     *               (various data can be attached to Intent "extras").
+     *
+     */
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == 1 && resultCode == RESULT_OK && null != data) {
+            Uri imgUri = data.getData();
+
+            String[] filePath = {MediaStore.Images.Media.DATA};
+
+            Cursor cursor = getContentResolver().query(imgUri, filePath, null, null, null);
+            cursor.moveToFirst();
+
+            int columnIndex = cursor.getColumnIndex(filePath[0]);
+
+            String picPath = cursor.getString(columnIndex);
+
+            cursor.close();
+
+            try {
+            // TODO: Splice File into Byte array for encryption    encrypt(picPath);
+                Toast.makeText(this, "Image encrypted..", Toast.LENGTH_SHORT).show();
+            } catch (Exception e) {
+                e.printStackTrace();
+                Toast.makeText(this, "Fail to encrypt image : " + e, Toast.LENGTH_SHORT).show();
+            }
         }
-
-
-
     }
 
     /**
@@ -117,7 +145,6 @@ public class MainActivity extends AppCompatActivity {
      * @throws NoSuchAlgorithmException if there is no such algorithm for generating the key.
      */
     public String keyTestAES() {
-
         SecretKey sk1;
         try {
             sk1 = KeyGenerator.getInstance("AES").generateKey();
@@ -157,8 +184,8 @@ public class MainActivity extends AppCompatActivity {
 
     /**
      * This method initializes the KeyGenerator for further use. It gets build with the instructions
-     * to generate an AES key, provided by the AndroidKeyStore, save it in the AndroidKeyStore,
-     * its purpose is to encrypt or decrypt only with the CBC block module aswell as with the
+     * to generate AES keys, provided by the AndroidKeyStore, saved in the AndroidKeyStore,
+     * its purpose is to encrypt or decrypt only with the CBC block module as well as with the
      * PKCS#7 encryption padding scheme.
      *
      * @return true or false, depending on if the KeyGenerator got initialized correctly.
@@ -171,7 +198,7 @@ public class MainActivity extends AppCompatActivity {
      */
     public boolean initKeyGen() {
         try {
-            keyStore = KeyStore.getInstance("AndroidKeyStore");
+            keyStore = KeyStore.getInstance(ANDROID_KEY_STORE);
         } catch (Exception e) {
             e.printStackTrace();
             System.out.println("KeyStore.getInstance() :: " + "initKey(): "
@@ -181,7 +208,7 @@ public class MainActivity extends AppCompatActivity {
         }
         try {
             // Creates the KeyGenerator with the AES algorithm
-            keyGen = KeyGenerator.getInstance(KeyProperties.KEY_ALGORITHM_AES, "AndroidKeyStore");
+            keyGen = KeyGenerator.getInstance(KeyProperties.KEY_ALGORITHM_AES, ANDROID_KEY_STORE);
             // initializes the KeyGenerator with a, probably and hopefully, true random number
             // SecureRandom secRan = new SecureRandom();
         } catch (NoSuchAlgorithmException | NoSuchProviderException e) {
@@ -196,7 +223,7 @@ public class MainActivity extends AppCompatActivity {
         try {
             keyStore.load(null);
             keyGen.init(new
-                    KeyGenParameterSpec.Builder("key1",
+                    KeyGenParameterSpec.Builder(KEY_NAME,
                     KeyProperties.PURPOSE_ENCRYPT |
                             KeyProperties.PURPOSE_DECRYPT)
                     .setBlockModes(KeyProperties.BLOCK_MODE_CBC)
@@ -217,19 +244,32 @@ public class MainActivity extends AppCompatActivity {
         return true;
     }
 
+    /**
+     * This method encrypts a data byte array
+     * @param data the byte array to encrypt
+     * @return the encrypted byte array
+     * @throws Exception in case the algorithm and providers are not existend, aswell as the keyname
+     */
     public byte[] encryptData(byte[] data) throws Exception {
-        Cipher cipher = Cipher.getInstance("AES/CBC/PKCS7Padding");
+        Cipher cipher = Cipher.getInstance(TRANSFORMATION);
         keyStore.load(null);
-        SecretKey secretKey = (SecretKey) keyStore.getKey("key1", null);
+        SecretKey secretKey = (SecretKey) keyStore.getKey(KEY_NAME, null);
         cipher.init(Cipher.ENCRYPT_MODE, secretKey);
+        encryptCipher = cipher.getIV();
         return cipher.doFinal(data);
     }
 
+    /**
+     * this method decrypts a data byte array
+     * @param encryptedData the encrypted array to decrypt
+     * @return the decrypted data byte array
+     * @throws Exception if the algorithm or provider are not existend, aswell as the key. Also throws an Exception if the IV encryptCipher is null.
+     */
     public byte[] decryptData(byte[] encryptedData) throws Exception {
-        Cipher cipher = Cipher.getInstance("AES/CBC/PKCS7Padding");
+        Cipher cipher = Cipher.getInstance(TRANSFORMATION);
         keyStore.load(null);
-        SecretKey secretKey = (SecretKey) keyStore.getKey("key1", null);
-        cipher.init(Cipher.DECRYPT_MODE, secretKey);
+        SecretKey secretKey = (SecretKey) keyStore.getKey(KEY_NAME, null);
+        cipher.init(Cipher.DECRYPT_MODE, secretKey, new IvParameterSpec(encryptCipher));
         return cipher.doFinal(encryptedData);
     }
 }

@@ -32,7 +32,7 @@ import java.util.ArrayList;
 class RustDef {
 
     static {
-        // This call loads the dynamic library containing the Rust code that we generated.
+        // This call loads the dynamic library containing the Rust code.
         System.loadLibrary("vulcanslimes");
     }
 
@@ -62,7 +62,8 @@ class RustDef {
 
 
     /*
-     Demo method - get called from Rust when callRust() gets called
+     Proof of concept method - get called from Rust when callRust() gets called
+        DO NOT USE
      */
     static void callback() {
         System.out.println("Callback successful");
@@ -75,17 +76,8 @@ class RustDef {
      * algorithm, symmetric algorithm, hash algorithm, and key usages. The key is made persistent
      * and associated with the provided `key_id`.
      * @param key_id - String that uniquely identifies the key so that it can be retrieved later
-     * @param key_algorithm - The asymmetric encryption algorithm to be used for the key
-     * @param sym_algorithm - An optional symmetric encryption algorithm to be used with the key
-     * @param hash - An optional hash algorithm to be used with the key
-     * @param key_usages - A vector of `AppKeyUsage` values specifying
-     *                     the intended usages for the key
      */
-    static void create_key(String key_id,
-                           String key_algorithm,
-                           String sym_algorithm,
-                           String hash,
-                           ArrayList<String> key_usages) {
+    static void create_key(String key_id) {
         //TODO @Erik
     }
 
@@ -96,18 +88,9 @@ class RustDef {
      * algorithm, symmetric algorithm, hash algorithm, and key usages. The loaded key is
      * associated with the provided `key_id`.
      *
-     * @param key_id        - String that uniquely identifies the key so that it can be retrieved later
-     * @param key_algorithm - The asymmetric encryption algorithm to be used for the key
-     * @param sym_algorithm - An optional symmetric encryption algorithm to be used with the key
-     * @param hash          - An optional hash algorithm to be used with the key
-     * @param key_usages    - A vector of `AppKeyUsage` values specifying
-     *                      the intended usages for the key
+     * @param key_id - String that uniquely identifies the key so that it can be retrieved later
      */
-    static void load_key(String key_id,
-                         String key_algorithm,
-                         String sym_algorithm,
-                         String hash,
-                         ArrayList<String> key_usages) {
+    static void load_key(String key_id) {
         //TODO @Erik
     }
 

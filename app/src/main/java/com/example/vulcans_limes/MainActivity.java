@@ -1,12 +1,22 @@
 package com.example.vulcans_limes;
 
+import android.content.Intent;
+import android.database.Cursor;
+import android.net.Uri;
 import android.os.Bundle;
+import android.provider.MediaStore;
 import android.security.keystore.KeyGenParameterSpec;
 import android.security.keystore.KeyProperties;
+import android.view.View;
 import android.widget.Button;
+import android.widget.ImageView;
 import android.widget.ScrollView;
 import android.widget.TextView;
+import android.widget.Toast;
 
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 
 import java.io.IOException;
@@ -33,32 +43,22 @@ import javax.crypto.spec.IvParameterSpec;
  */
 public class MainActivity extends AppCompatActivity {
 
-    public static final String TRANSFORMATION = KeyProperties.KEY_ALGORITHM_AES + "/" + KeyProperties.BLOCK_MODE_CBC + "/"
-            + KeyProperties.ENCRYPTION_PADDING_PKCS7;
+    public static final String TRANSFORMATION = KeyProperties.KEY_ALGORITHM_AES +
+                                                "/" + KeyProperties.BLOCK_MODE_CBC + "/"
+                                                 + KeyProperties.ENCRYPTION_PADDING_PKCS7;
     public static final String KEY_NAME = "key";
     public static final String ANDROID_KEY_STORE = "AndroidKeyStore";
 
     byte[] encryptCipher;
-    /**
-     * @param keyText displaying Text on the devices screen
-     */
-    TextView keyText;
-    /**
-     * @param genKeyBtn generates a key upon activation
-     */
-    Button genKeyBtn;
-    /**
-     * @param scView for the function of scrolling on the device
-     */
-    ScrollView scView;
-    /**
-     * @param keyGen KeyGenerator for generating keys
-     */
-    KeyGenerator keyGen;
-    /**
-     * @param keyStore stores keys inside the KeyStore
-     */
+
     KeyStore keyStore;
+
+    KeyGenerator keyGen;
+
+    private ImageView imageView;
+    private Button encButton, decButton;
+    private ActivityResultLauncher<Intent> launcher;
+
 
 
     @Override
@@ -70,39 +70,63 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        keyText = findViewById(R.id.keyText);
-        genKeyBtn = findViewById(R.id.genkey);
-        scView = findViewById(R.id.scrollView);
-        // Generates a AES key and prints provider and location info
-        //genKeyBtn.setOnClickListener(view -> keyText.setText(keyText.getText() + "\n" + genKey()));
-        // Just for Testing the AES Key, giving out all the information
-        // genKeyBtn.setOnClickListener(view -> keyText.setText(keyText.getText() + "\n" + keyTestAES()));
-        genKey();
-        // Testing Encrypt Decript functionality
-        byte [] bArray = new byte[] {2, 3, 4, 1};
-        byte[] bDecArray;
-        byte [] bEncArray;
-        System.out.println("Before Encryption: " + Arrays.toString(bArray));
-        try {
-            bEncArray = encryptData(bArray);
-            System.out.println("After Encryption: " + Arrays.toString(bEncArray));
-        } catch (Exception e) {
-            System.out.println("ERROR could not ENCRYPT!");
-            throw new RuntimeException(e);
-        }
+        imageView = findViewById(R.id.idIVimage);
+        encButton = findViewById(R.id.idBtnEncrypt);
+        decButton = findViewById(R.id.idBtnDecrypt);
+        launcher = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(),result -> {
+            if (result.getResultCode() == RESULT_OK) {
+                Intent data = result.getData();
+            }
+        } );
+
+        encButton.setOnClickListener(v -> {
+            Intent intent = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
+            launcher.launch(intent);
+        });
+
+        decButton.setOnClickListener(v -> {
             try {
-                bDecArray = decryptData(bEncArray);
-                System.out.println("After Decryption: " + Arrays.toString(bDecArray));
-            } catch (Exception e){
-                System.out.println("ERROR could not DECRYPT!");
-                throw new RuntimeException(e);
+              // TODO:  decrypt();
+            } catch (Exception e) {
+                Toast.makeText(MainActivity.this, "Fail to decrypt image", Toast.LENGTH_SHORT).show();
+                e.printStackTrace();
             }
-            if (Arrays.equals(bArray, bDecArray)){
-                System.out.println("IT LIVES!!!");
-            } else {
-                System.out.println("ITS DEAD :(");
-            }
+        });
     }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        // on below line getting image uri
+        if (requestCode == 1 && resultCode == RESULT_OK && null != data) {
+            // on below line getting image uri.
+            Uri imgUri = data.getData();
+
+            // on below line getting file path
+            String[] filePath = {MediaStore.Images.Media.DATA};
+
+            // on below line creating a cursor and moving to next.
+            Cursor cursor = getContentResolver().query(imgUri, filePath, null, null, null);
+            cursor.moveToFirst();
+
+            // on below line creating an index for column
+            int columnIndex = cursor.getColumnIndex(filePath[0]);
+
+            // on below line creating a string for path.
+            String picPath = cursor.getString(columnIndex);
+
+            // on below line closing our cursor.
+            cursor.close();
+
+            // on below line we are encrypting our image.
+            try {
+                encrypt(picPath);
+                // on below line we are encrypting our image.
+                Toast.makeText(this, "Image encrypted..", Toast.LENGTH_SHORT).show();
+            } catch (Exception e) {
+                e.printStackTrace();
+                Toast.makeText(this, "Fail to encrypt image : " + e, Toast.LENGTH_SHORT).show();
+            }
 
     /**
      * This class has been made for testing. It generates a 16-Byte AES key and builds a String with all the keys information.

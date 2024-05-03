@@ -1,5 +1,10 @@
 package com.example.vulcans_limes;
 
+import static java.util.Arrays.asList;
+
+import com.google.android.gms.common.util.ArrayUtils;
+
+import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.Arrays;
 
@@ -62,6 +67,10 @@ class RustDef {
     //----------------------------------------------------------------------------------------------
     //Java methods that can be called from Rust
 
+    /*
+    CryptoManger object for execution of methods
+     */
+    static CryptoManager cryptoManager;
 
     /*
      Proof of concept method - get called from Rust when callRust() gets called
@@ -79,8 +88,7 @@ class RustDef {
      * @param key_id - String that uniquely identifies the key so that it can be retrieved later
      */
     static void create_key(String key_id) {
-        //TODO @Erik
-        System.out.println("Create Key angekommen: "+ key_id); //TODO remove
+        cryptoManager.genKey(key_id);
     }
 
     /**
@@ -92,7 +100,7 @@ class RustDef {
      * @param key_id - String that uniquely identifies the key so that it can be retrieved later
      */
     static void load_key(String key_id) {
-        //TODO @Erik
+        cryptoManager.setKEY_NAME(key_id);
     }
 
     /**
@@ -111,7 +119,9 @@ class RustDef {
                                   String sym_algorithm,
                                   String hash,
                                   ArrayList<String> key_usages) {
-        //TODO @Erik
+        //TODO @Erik MUST implement asymmetric encrytion in CryptoManager
+        cryptoManager = new CryptoManager(key_algorithm, sym_algorithm, hash, key_usages);
+
     }
 
     /**
@@ -121,7 +131,7 @@ class RustDef {
      * @return - The signed data
      */
     static byte[] sign_data(byte[] data) {
-        //TODO @Erik
+        //TODO @Erik implement signing of data in CryptoManager
         System.out.println("Recieved data in sign_data: "+ Arrays.toString(data));
         return null;
     }
@@ -134,7 +144,7 @@ class RustDef {
      * @return - true if the signature is vaild, false otherwise
      */
     static boolean verify_signature(byte[] data, byte[] signature) {
-        //TODO @Erik
+        //TODO @Erik implement veryfication of signatures in CryptoManager
         return false;
     }
 
@@ -144,9 +154,8 @@ class RustDef {
      * @param data - a byte array representing the data to be encrypted
      * @return - an ArrayList\<Byte\> containing the encrypted data
      */
-    static ArrayList<Byte> encrypt_data(byte[] data) {
-        //TODO @Erik
-        return null;
+    static ArrayList<Byte> encrypt_data(byte[] data) throws Exception {
+        return new ArrayList<>(Arrays.asList(cryptoManager.toByte(cryptoManager.encryptData(data))));
     }
 
     /**
@@ -155,8 +164,7 @@ class RustDef {
      * @param encrypted_data - a byte array representing the data to be decrypted
      * @return - an ArrayList\<Byte\> containing the encrypted data
      */
-    static ArrayList<Byte> decrypt_data(byte[] encrypted_data){
-        //TODO @Erik
-        return null;
+    static ArrayList<Byte> decrypt_data(byte[] encrypted_data) throws Exception {
+        return new ArrayList<>(Arrays.asList(cryptoManager.toByte(cryptoManager.decryptData(encrypted_data))));
     }
 }

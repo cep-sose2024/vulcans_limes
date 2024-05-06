@@ -57,6 +57,19 @@ public class CryptoManager {
     }
 
     /**
+     * This constructor is for the demo.
+     * @param keyAlgorithm
+     */
+    public CryptoManager(String keyAlgorithm) {
+        KEY_ALGORITHM = keyAlgorithm;
+        TRANSFORMATION = KEY_ALGORITHM +
+                "/" + KeyProperties.BLOCK_MODE_CBC + "/"
+                + KeyProperties.ENCRYPTION_PADDING_PKCS7;
+        initKeyGen();
+    }
+
+
+    /**
      * This method initializes the KeyGenerator for further use. It gets build with the instructions
      * to generate AES keys, provided by the AndroidKeyStore, saved in the AndroidKeyStore,
      * its purpose is to encrypt or decrypt only with the CBC block module as well as with the

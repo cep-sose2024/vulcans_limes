@@ -1,10 +1,5 @@
 package com.example.vulcans_limes;
 
-import static java.util.Arrays.asList;
-
-import com.google.android.gms.common.util.ArrayUtils;
-
-import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.Arrays;
 
@@ -132,8 +127,9 @@ class RustDef {
      */
     static byte[] sign_data(byte[] data) {
         //TODO @Erik implement signing of data in CryptoManager
+        byte[] signedData = cryptoManager.signData(data);
         System.out.println("Recieved data in sign_data: "+ Arrays.toString(data));
-        return null;
+        return signedData;
     }
 
     /**
@@ -145,7 +141,7 @@ class RustDef {
      */
     static boolean verify_signature(byte[] data, byte[] signature) {
         //TODO @Erik implement veryfication of signatures in CryptoManager
-        return false;
+        return cryptoManager.verifySignature(data, signature);
     }
 
     /**

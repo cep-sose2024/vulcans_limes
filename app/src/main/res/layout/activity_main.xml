@@ -48,4 +48,21 @@
         android:layout_margin="10dp"
         android:text="Verify"/>
 
+    <Button
+        android:id="@+id/idBtnLoad"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/idBtnVerify"
+        android:layout_margin="10dp"
+        android:text="Load key"/>
+
+    <Button
+        android:id="@+id/idBtnCreate"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/idBtnLoad"
+        android:layout_margin="10dp"
+        android:text="Create key"/>
+
+
 </RelativeLayout>

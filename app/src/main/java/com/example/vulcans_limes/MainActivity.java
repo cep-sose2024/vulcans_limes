@@ -56,7 +56,7 @@ public class MainActivity extends AppCompatActivity {
     KeyGenerator keyGen;
 
     private ImageView imageView;
-    private Button encButton, decButton, signButton, verifyButton;
+    private Button encButton, decButton, signButton, verifyButton, loadButton, createButton;
     private ActivityResultLauncher<Intent> launcher;
 
 
@@ -75,6 +75,8 @@ public class MainActivity extends AppCompatActivity {
         decButton = findViewById(R.id.idBtnDecrypt);
         signButton = findViewById(R.id.idBtnSign);
         verifyButton = findViewById(R.id.idBtnVerify);
+        loadButton = findViewById(R.id.idBtnLoad);
+        createButton = findViewById(R.id.idBtnCreate);
 
         // Activity for encryption on button press
         launcher = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(),result -> {
@@ -109,8 +111,7 @@ public class MainActivity extends AppCompatActivity {
                 //TODO: sign();
 
 
-                //Erfolg wird angezeigt
-                Snackbar.make(v, "Der String \"Sign me!\" wurde signiert!", Snackbar.LENGTH_SHORT).show();
+                Snackbar.make(v, "The String \"Sign me!\" got signed!", Snackbar.LENGTH_SHORT).show();
 
             } catch (Exception e){
                 e.printStackTrace();
@@ -122,8 +123,29 @@ public class MainActivity extends AppCompatActivity {
             try{
                 //TODO: verify();
 
-                //Erfolgreiche Verifikation wird angezeigt
-                Snackbar.make(v, "Erfolgreich verifiziert!", Snackbar.LENGTH_SHORT).show();
+                Snackbar.make(v, "Successful verification!", Snackbar.LENGTH_SHORT).show();
+            } catch (Exception e){
+                e.printStackTrace();
+            }
+        });
+
+        //When load key button is pressed
+        loadButton.setOnClickListener(v -> {
+            try{
+                //TODO
+
+                Snackbar.make(v, "The key was successfully loaded!", Snackbar.LENGTH_SHORT).show();
+            } catch (Exception e){
+                e.printStackTrace();
+            }
+        });
+
+        //When create key button is pressed
+        createButton.setOnClickListener(v -> {
+            try{
+                //TODO
+
+                Snackbar.make(v, "A key was successfully created!", Snackbar.LENGTH_SHORT).show();
             } catch (Exception e){
                 e.printStackTrace();
             }

@@ -7,8 +7,11 @@ import android.os.Bundle;
 import android.provider.MediaStore;
 import android.security.keystore.KeyGenParameterSpec;
 import android.security.keystore.KeyProperties;
+import android.view.View;
 import android.widget.Button;
 import android.widget.ImageView;
+import android.widget.ScrollView;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.activity.result.ActivityResultLauncher;
@@ -23,6 +26,7 @@ import java.security.KeyStore;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
 import java.security.cert.CertificateException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
 
@@ -89,10 +93,7 @@ public class MainActivity extends AppCompatActivity {
         decButton.setOnClickListener(v -> {
             try {
               // TODO:  decrypt();
-                System.out.println("CheckCall");
-                byte[] data = new byte[3];
-                data[0] = 3;
-                System.out.println(Arrays.toString(RustDef.demoEncrypt(data)));
+               RustDef.callRust();
             } catch (Exception e) {
                 Toast.makeText(MainActivity.this, "Fail to decrypt image", Toast.LENGTH_SHORT).show();
                 e.printStackTrace();

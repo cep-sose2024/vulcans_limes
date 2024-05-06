@@ -36,7 +36,6 @@ mod jni {
     /// | [jni::JObject<'env>](jni::objects::JObject)        | *(any Java object as input type)* |
     /// | [jni::jobject](jni::sys::jobject)                  | *(any Java object as output)*     |
     /// |----------------------------------------------------------------------------------------|
-    #[allow(non_snake_case)]
     impl RustDef {
 
         //------------------------------------------------------------------------------------------
@@ -55,31 +54,15 @@ mod jni {
         pub extern "jni" fn callRust(environment : &JNIEnv) -> (){
 
             //example usage of a java method call from rust
-            // Self::create_key(environment, String::from("moin")).unwrap()
+            Self::create_key(environment, String::from("moin")).unwrap()
 
             //DOESNT WORK YET
-             let bytes: [u8; 5] = [10, 20, 30, 40, 50];
-             // Self::sign_data_call(environment, &bytes);
+            // let bytes: [u8; 5] = [10, 20, 30, 40, 50];
+            // Self::sign_data(environment, &bytes).expect("error");
         }
 
-        /// Is called to Demo Encryption from Rust
-        pub extern "jni" fn demoEncrypt(environment: &JNIEnv, data: Box<[u8]>) -> Box<[u8]> {
-            //TESTING - CAN BE REMOVED
-            let mut result = data.into_vec();
-            result.push(42);
-            result.into_boxed_slice()
-
-        }
-
-        pub extern "jni" fn demoDecrypt(environment: &JNIEnv, data: Box<[u8]>) -> Box<[u8]> {
-            todo!()
-        }
-
-        pub extern "jni" fn demoSign(environment: &JNIEnv, data: Box<[u8]>) -> Box<[u8]> {
-            todo!()
-        }
-
-        pub extern "jni" fn demoVerify(environment: &JNIEnv, data: Box<[u8]>) -> bool {
+        /// Is called to start all demo method calls from the Rust side
+        pub extern "jni" fn startDemo() -> () {
             todo!()
         }
 
@@ -195,8 +178,9 @@ mod jni {
         /// A `Result` containing the signature as a `Vec<u8>` on success,
         /// or an `Error` on failure.
         fn sign_data_call(environment: &JNIEnv, data: &[u8]) -> Vec<u8> {
-            data.to_vec()
+
             // let data = data.to_vec();
+            data.to_vec()
             // Self::sign_data(environment, data)
 
             // let data = JValue::from(data.to_vec()); //DOESNT WORK; NEEDS FIX
@@ -211,7 +195,5 @@ mod jni {
             //     Err(e) => Err(Error),
             // }
         }
-
-        // pub extern "java" fn sign_data(environment: &JNIEnv, data: Vec<u8>) -> Result<_, Error> {}
     }
 }

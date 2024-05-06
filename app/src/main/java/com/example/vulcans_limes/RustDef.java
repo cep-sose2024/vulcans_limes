@@ -1,10 +1,6 @@
 package com.example.vulcans_limes;
 
-import static java.util.Arrays.asList;
 
-import com.google.android.gms.common.util.ArrayUtils;
-
-import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.Arrays;
 
@@ -62,7 +58,13 @@ class RustDef {
      * Is called to start all demo method calls from the Rust side
      * --temporary--
      */
-    static native void startDemo();
+    static native byte[] demoEncrypt(byte[] data);
+
+    static native byte[] demoDecrypt(byte[] data);
+
+    static native byte[] demoSign(byte[] data);
+
+    static native boolean demoVerify(byte[] data);
 
     //----------------------------------------------------------------------------------------------
     //Java methods that can be called from Rust
@@ -130,9 +132,9 @@ class RustDef {
      * @param data - A byte array representing the data to be signed
      * @return - The signed data
      */
-    static byte[] sign_data(byte[] data) {
+    static ArrayList<Byte> sign_data(ArrayList<Byte> data) {
         //TODO @Erik implement signing of data in CryptoManager
-        System.out.println("Recieved data in sign_data: "+ Arrays.toString(data));
+        System.out.println("Recieved data in sign_data: " + data);
         return null;
     }
 

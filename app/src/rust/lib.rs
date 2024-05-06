@@ -1,13 +1,15 @@
 use robusta_jni::bridge;
 
+
 #[bridge]
 mod jni {
     use std::fmt::Error;
-
     use robusta_jni::bridge;
     use robusta_jni::convert::Signature;
     use robusta_jni::jni::JNIEnv;
     use robusta_jni::jni::objects::JValue;
+    use robusta_jni::convert::IntoJavaValue;
+
 
     #[derive(Signature)]
     #[package(com.example.vulcans_1limes)]
@@ -35,6 +37,7 @@ mod jni {
     /// | [jni::JObject<'env>](jni::objects::JObject)        | *(any Java object as input type)* |
     /// | [jni::jobject](jni::sys::jobject)                  | *(any Java object as output)*     |
     /// |----------------------------------------------------------------------------------------|
+    #[allow(non_snake_case)]
     impl RustDef {
 
         //------------------------------------------------------------------------------------------
@@ -53,15 +56,31 @@ mod jni {
         pub extern "jni" fn callRust(environment : &JNIEnv) -> (){
 
             //example usage of a java method call from rust
-            Self::create_key(environment, String::from("moin")).unwrap()
+            // Self::create_key(environment, String::from("moin")).unwrap()
 
             //DOESNT WORK YET
-            // let bytes: [u8; 5] = [10, 20, 30, 40, 50];
-            // Self::sign_data(environment, &bytes).expect("error");
+             let bytes: [u8; 5] = [10, 20, 30, 40, 50];
+             // Self::sign_data_call(environment, &bytes);
         }
 
-        /// Is called to start all demo method calls from the Rust side
-        pub extern "jni" fn startDemo() -> () {
+        /// Is called to Demo Encryption from Rust
+        pub extern "jni" fn demoEncrypt(data: Box<[u8]>) -> Box<[u8]> {
+            //TESTING - CAN BE REMOVED
+            let mut result = data.into_vec();
+            result.push(42);
+            result.into_boxed_slice()
+
+        }
+
+        pub extern "jni" fn demoDecrypt(data: Box<[u8]>) -> Box<[u8]> {
+            todo!()
+        }
+
+        pub extern "jni" fn demoSign(data: Box<[u8]>) -> Box<[u8]> {
+            todo!()
+        }
+
+        pub extern "jni" fn demoVerify(data: Box<[u8]>) -> bool {
             todo!()
         }
 
@@ -176,18 +195,25 @@ mod jni {
         ///
         /// A `Result` containing the signature as a `Vec<u8>` on success,
         /// or an `Error` on failure.
-        fn sign_data(environment: &JNIEnv, data: &[u8]) -> Result<(), Error> {
-            let data = JValue::from(data); //DOESNT WORK; NEEDS FIX
-            let result = environment.call_static_method(
-                "com/example/vulcans_limes/RustDef",
-                "initialize_module",
-                "(Ljava.util.ArrayList<byte>)V",
-                &[data],
-            );
-            return match result {
-                Ok(..) => Ok(()),
-                Err(e) => Err(Error),
-            }
+        fn sign_data_call(environment: &JNIEnv, data: &[u8]) -> Vec<u8> {
+
+            // let data = data.to_vec();
+            data.to_vec()
+            // Self::sign_data(environment, data)
+
+            // let data = JValue::from(data.to_vec()); //DOESNT WORK; NEEDS FIX
+            // let result = environment.call_static_method(
+            //     "com/example/vulcans_limes/RustDef",
+            //     "initialize_module",
+            //     "(Ljava.util.ArrayList<byte>)V",
+            //     &[data],
+            // );
+            // return match result {
+            //     Ok(..) => Ok(()),
+            //     Err(e) => Err(Error),
+            // }
         }
+
+        // pub extern "java" fn sign_data(environment: &JNIEnv, data: Vec<u8>) -> Result<_, Error> {}
     }
 }

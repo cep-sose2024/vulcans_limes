@@ -32,4 +32,20 @@
         android:layout_margin="10dp"
         android:text="Decrypt" />
 
+    <Button
+        android:id="@+id/idBtnSign"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/idBtnDecrypt"
+        android:layout_margin="10dp"
+        android:text="Sign"/>
+
+    <Button
+        android:id="@+id/idBtnVerify"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/idBtnSign"
+        android:layout_margin="10dp"
+        android:text="Verify"/>
+
 </RelativeLayout>

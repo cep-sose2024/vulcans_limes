@@ -54,7 +54,7 @@ public class MainActivity extends AppCompatActivity {
     KeyGenerator keyGen;
 
     private ImageView imageView;
-    private Button encButton, decButton;
+    private Button encButton, decButton, signButton, verifyButton;
     private ActivityResultLauncher<Intent> launcher;
 
 
@@ -71,6 +71,8 @@ public class MainActivity extends AppCompatActivity {
         imageView = findViewById(R.id.idIVimage);
         encButton = findViewById(R.id.idBtnEncrypt);
         decButton = findViewById(R.id.idBtnDecrypt);
+        signButton = findViewById(R.id.idBtnSign);
+        verifyButton = findViewById(R.id.idBtnVerify);
 
         // Activity for encryption on button press
         launcher = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(),result -> {
@@ -98,6 +100,26 @@ public class MainActivity extends AppCompatActivity {
                 e.printStackTrace();
             }
         });
+
+        //When sign button is pressed
+        signButton.setOnClickListener(v -> {
+            try{
+                //TODO: sign();
+            } catch (Exception e){
+                e.printStackTrace();
+            }
+        });
+
+        //When verify button is pressed
+        verifyButton.setOnClickListener(v -> {
+            try{
+                //TODO: verify();
+            } catch (Exception e){
+                e.printStackTrace();
+            }
+        });
+
+
     }
 
     /**

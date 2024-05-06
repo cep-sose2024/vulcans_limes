@@ -16,6 +16,8 @@ import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 
+import com.google.android.material.snackbar.Snackbar;
+
 import java.io.IOException;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.Key;
@@ -105,6 +107,11 @@ public class MainActivity extends AppCompatActivity {
         signButton.setOnClickListener(v -> {
             try{
                 //TODO: sign();
+
+
+                //Erfolg wird angezeigt
+                Snackbar.make(v, "Der String \"Sign me!\" wurde signiert!", Snackbar.LENGTH_SHORT).show();
+
             } catch (Exception e){
                 e.printStackTrace();
             }
@@ -114,6 +121,9 @@ public class MainActivity extends AppCompatActivity {
         verifyButton.setOnClickListener(v -> {
             try{
                 //TODO: verify();
+
+                //Erfolgreiche Verifikation wird angezeigt
+                Snackbar.make(v, "Erfolgreich verifiziert!", Snackbar.LENGTH_SHORT).show();
             } catch (Exception e){
                 e.printStackTrace();
             }

@@ -6,9 +6,14 @@ import android.security.keystore.KeyProperties;
 import java.io.IOException;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.Key;
+import java.security.KeyPair;
+import java.security.KeyPairGenerator;
 import java.security.KeyStore;
+import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
+import java.security.PublicKey;
+import java.security.Signature;
 import java.security.cert.CertificateException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -33,6 +38,8 @@ public class CryptoManager {
     private KeyStore keyStore;
 
     private KeyGenerator keyGen;
+
+    private static final String SIGNATURE_ALGORITHM = "SHA256withRSA";
 
     /**
      *  Constructor of CryptoManager. Starts initiating the KeyGenerator.
@@ -161,11 +168,81 @@ public class CryptoManager {
         return cipher.doFinal(encryptedData);
     }
 
+    /**
+     * Hashes the given string data using the SHA-256 algorithm.
+     *
+     * @param data The input string data to be hashed.
+     * @return A byte array containing the SHA-256 hash of the data.
+     * @throws Exception If an error occurs during hashing.
+     */
+    public static byte[] hashData(String data) throws Exception {
+        MessageDigest messageDigest = MessageDigest.getInstance("SHA-256");
+        //System.out.println(bytesToHex((messageDigest.digest(data.getBytes()))));
+        return messageDigest.digest(data.getBytes());
+
+    }
+
+    /**
+     * Signs the given string data using the private key from the provided key pair and the specified signature algorithm.
+     *
+     * @param data    The input string data to be signed.
+     * @param keyPair The KeyPair object containing the private key for signing.
+     * @return A byte array containing the signature of the data.
+     * @throws Exception If an error occurs during signing.
+     */
+
+    // wir geben rein ein (byte[])
+    public static byte[] signData(String data, KeyPair keyPair) throws Exception {
+        Signature signature = Signature.getInstance(SIGNATURE_ALGORITHM);
+        signature.initSign(keyPair.getPrivate());
+        signature.update(data.getBytes());
+        System.out.println(Arrays.toString(signature.sign()));
+        return signature.sign();
+    }
+
+
+    /**
+     * Generates a new RSA key pair with a key size of 2048 bits.
+     *
+     * @return The generated KeyPair object.
+     * @throws Exception If an error occurs during key generation.
+     */
+    public static KeyPair generateKeyPair() throws Exception {
+
+        KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("RSA");
+        keyPairGenerator.initialize(2048);
+        return keyPairGenerator.generateKeyPair();
+    }
+
+    /**
+     * Verifies if the given signature is valid for the provided data and public key.
+     *
+     * @param data      The input string data to be verified.
+     * @param signature The byte array containing the signature to be verified.
+     * @param publicKey The PublicKey object to be used for verification.
+     * @return True if the signature is valid, false otherwise.
+     * @throws Exception If an error occurs during verification.
+     */
+
+    // wir geben rein (byte[] data,byte[] signature) PublicKey wird in der methode gehandelt
+    // PublicKey wird in der Methode über KeyName
+    public static boolean verifySignature(byte[] data, byte[] signature, PublicKey publicKey) throws Exception {
+        try {
+            Signature verificationSignature = Signature.getInstance(SIGNATURE_ALGORITHM);
+            verificationSignature.initVerify(publicKey);
+            verificationSignature.update(data);
+            return verificationSignature.verify(signature);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     public Byte[] toByte(byte[] bytesPrim) {
         Byte[] bytes = new Byte[bytesPrim.length];
         Arrays.setAll(bytes, n -> bytesPrim[n]);
         return bytes;
     }
+
     /**
      * this method sets KEY_NAME to the key_id for further use (e.g. before generating/loading a key with the given key_id)
      * @param key_id    unique identifier of a key

@@ -132,10 +132,11 @@ class RustDef {
      * @param data - A byte array representing the data to be signed
      * @return - The signed data
      */
-    static ArrayList<Byte> sign_data(ArrayList<Byte> data) {
+    static byte[] sign_data(byte[] data) {
         //TODO @Erik implement signing of data in CryptoManager
-        System.out.println("Recieved data in sign_data: " + data);
-        return null;
+        byte[] signedData = cryptoManager.signData(data);
+        System.out.println("Recieved data in sign_data: "+ Arrays.toString(data));
+        return signedData;
     }
 
     /**
@@ -147,8 +148,9 @@ class RustDef {
      */
     static boolean verify_signature(byte[] data, byte[] signature) {
         //TODO @Erik implement veryfication of signatures in CryptoManager
-        return false;
+        return cryptoManager.verifySignature(data, signature);
     }
+
 
     /**
      * Encrypts the given data using the key managed by the TPM

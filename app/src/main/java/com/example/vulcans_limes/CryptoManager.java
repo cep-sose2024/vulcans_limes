@@ -12,6 +12,7 @@ import java.security.KeyStore;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
+import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.Signature;
 import java.security.cert.CertificateException;
@@ -196,21 +197,46 @@ public class CryptoManager {
     }
 
     /**
+     * Hashes the given string data using the SHA-256 algorithm.
+     *
+     * @param data The input string data to be hashed.
+     * @return A byte array containing the SHA-256 hash of the data.
+     * @throws Exception If an error occurs during hashing.
+     */
+    public byte[] hashData(byte[] data) {
+        try {
+            MessageDigest messageDigest = MessageDigest.getInstance("SHA-256");
+            //System.out.println(bytesToHex((messageDigest.digest(data.getBytes()))));
+            return messageDigest.digest(data);
+        } catch(Exception e) {
+            e.printStackTrace();
+            return null;
+        }
+
+    }
+
+    /**
      * Signs the given string data using the private key from the provided key pair and the specified signature algorithm.
      *
      * @param data    The input string data to be signed.
-     * @param keyPair The KeyPair object containing the private key for signing.
      * @return A byte array containing the signature of the data.
      * @throws Exception If an error occurs during signing.
      */
 
     // wir geben rein ein (byte[])
-    public static byte[] signData(String data, KeyPair keyPair) throws Exception {
-        Signature signature = Signature.getInstance(SIGNATURE_ALGORITHM);
-        signature.initSign(keyPair.getPrivate());
-        signature.update(data.getBytes());
-        System.out.println(Arrays.toString(signature.sign()));
-        return signature.sign();
+    public byte[] signData(byte[] data) {
+        try {
+            Signature signature = Signature.getInstance(SIGNATURE_ALGORITHM);
+            PrivateKey privateKey= (PrivateKey) keyStore.getKey(KEY_NAME, null);
+            signature.initSign(privateKey);
+            signature.update(data);
+            System.out.println(Arrays.toString(signature.sign()));
+            return signature.sign();
+        } catch(Exception e) {
+            e.printStackTrace();
+            return null;
+        }
+
     }
 
 
@@ -220,11 +246,17 @@ public class CryptoManager {
      * @return The generated KeyPair object.
      * @throws Exception If an error occurs during key generation.
      */
-    public static KeyPair generateKeyPair() throws Exception {
-
-        KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("RSA");
-        keyPairGenerator.initialize(2048);
-        return keyPairGenerator.generateKeyPair();
+    public KeyPair generateKeyPair() {
+        try{
+            // TODO: KeyStore KeyPair handling
+            // TODO: Fit KeyPairGenerator with builder, like in initKeyGen
+            KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("RSA", ANDROID_KEY_STORE);
+            keyPairGenerator.initialize(2048);
+            return keyPairGenerator.generateKeyPair();
+        } catch(Exception e) {
+            e.printStackTrace();
+            return null;
+        }
     }
 
     /**
@@ -232,21 +264,22 @@ public class CryptoManager {
      *
      * @param data      The input string data to be verified.
      * @param signature The byte array containing the signature to be verified.
-     * @param publicKey The PublicKey object to be used for verification.
      * @return True if the signature is valid, false otherwise.
      * @throws Exception If an error occurs during verification.
      */
 
     // wir geben rein (byte[] data,byte[] signature) PublicKey wird in der methode gehandelt
     // PublicKey wird in der Methode über KeyName
-    public static boolean verifySignature(byte[] data, byte[] signature, PublicKey publicKey) throws Exception {
+    public boolean verifySignature(byte[] data, byte[] signature) {
         try {
             Signature verificationSignature = Signature.getInstance(SIGNATURE_ALGORITHM);
+            PublicKey publicKey = (PublicKey) keyStore.getKey(KEY_NAME, null);
             verificationSignature.initVerify(publicKey);
             verificationSignature.update(data);
             return verificationSignature.verify(signature);
         } catch (Exception e) {
-            throw new RuntimeException(e);
+            e.printStackTrace();
+            return false;
         }
     }
 

@@ -1,18 +1,20 @@
 use robusta_jni::bridge;
 
 #[bridge]
-mod jni {
-    use std::fmt::Error;
-
+pub mod jni {
+    #[allow(unused_imports)]
     use robusta_jni::bridge;
-    use robusta_jni::convert::IntoJavaValue;
-    use robusta_jni::convert::Signature;
+    use robusta_jni::convert::{IntoJavaValue, Signature, TryFromJavaValue, TryIntoJavaValue};
+    use robusta_jni::jni::errors::Error;
     use robusta_jni::jni::JNIEnv;
-    use robusta_jni::jni::objects::JValue;
+    use robusta_jni::jni::objects::{AutoLocal, JString, JValue};
 
-    #[derive(Signature)]
+    #[derive(Signature, TryIntoJavaValue, IntoJavaValue, TryFromJavaValue)]
     #[package(com.example.vulcans_1limes)]
-    struct RustDef {}
+    pub struct RustDef<'env: 'borrow, 'borrow> {
+        #[instance]
+        pub raw: AutoLocal<'env, 'borrow>,
+    }
 
     /// This Implementation provides the method declarations that are the interface for the JNI.
     /// The first part are Rust-methods that can be called from other Java-classes,
@@ -37,7 +39,7 @@ mod jni {
     /// | [jni::jobject](jni::sys::jobject)                  | *(any Java object as output)*     |
     /// |----------------------------------------------------------------------------------------|
     #[allow(non_snake_case)]
-    impl RustDef {
+    impl<'env: 'borrow, 'borrow> RustDef<'env, 'borrow> {
 
         //------------------------------------------------------------------------------------------
         // Rust methods that can be called from Java
@@ -52,23 +54,16 @@ mod jni {
 
         ///Proof of concept method - shows callback from Rust to a java method
         ///     ONLY USE FOR TESTING
-        pub extern "jni" fn callRust(environment : &JNIEnv) -> (){
+        pub extern "jni" fn callRust(environment: &JNIEnv) -> String {
 
             //example usage of a java method call from rust
-            // Self::create_key(environment, String::from("moin")).unwrap()
-
-            //DOESNT WORK YET
-             let bytes: [u8; 5] = [10, 20, 30, 40, 50];
-             // Self::sign_data_call(environment, &bytes);
+            Self::create_key(environment, String::from("moin")).unwrap();
+            String::from("Success")
         }
 
         /// Is called to Demo Encryption from Rust
         pub extern "jni" fn demoEncrypt(environment: &JNIEnv, data: Box<[u8]>) -> Box<[u8]> {
-            //TESTING - CAN BE REMOVED
-            let mut result = data.into_vec();
-            result.push(42);
-            result.into_boxed_slice()
-
+            todo!()
         }
 
         pub extern "jni" fn demoDecrypt(environment: &JNIEnv, data: Box<[u8]>) -> Box<[u8]> {
@@ -76,7 +71,10 @@ mod jni {
         }
 
         pub extern "jni" fn demoSign(environment: &JNIEnv, data: Box<[u8]>) -> Box<[u8]> {
-            todo!()
+            //TESTING - CAN BE REMOVED
+            let result = Self::sign_data(environment, data.as_ref())
+                .expect("Sign_data failed");
+            result.into_boxed_slice()
         }
 
         pub extern "jni" fn demoVerify(environment: &JNIEnv, data: Box<[u8]>) -> bool {
@@ -92,14 +90,13 @@ mod jni {
         pub fn callback(environment: &JNIEnv) -> () {
             //This calls a method in Java in the Class RustDef, with the method name "callback"
             //and no arguments
-            let result = environment.call_static_method(
-                        "com/example/vulcans_limes/RustDef",
-                        "callback",
-                        "()V",
-                        &[],
+            environment.call_static_method(
+                "com/example/vulcans_limes/RustDef",
+                "callback",
+                "()V",
+                &[],
             ).expect("Java func call failed");
         }
-
 
         /// Creates a new cryptographic key identified by `key_id`.
         ///
@@ -118,8 +115,8 @@ mod jni {
             );
             return match result {
                 Ok(..) => Ok(()),
-                Err(e) => Err(Error),
-            }
+                Err(e) => Err(e),
+            };
         }
 
         /// Loads an existing cryptographic key identified by `key_id`.
@@ -139,8 +136,8 @@ mod jni {
             );
             return match result {
                 Ok(..) => Ok(()),
-                Err(e) => Err(Error),
-            }
+                Err(e) => Err(e),
+            };
         }
 
         /// Initializes the TPM module and returns a handle for further operations.
@@ -180,8 +177,8 @@ mod jni {
             );
             return match result {
                 Ok(..) => Ok(()),
-                Err(e) => Err(Error),
-            }
+                Err(e) => Err(e),
+            };
         }
 
         /// Signs the given data using the cryptographic key managed by the TPM provider.
@@ -194,24 +191,76 @@ mod jni {
         ///
         /// A `Result` containing the signature as a `Vec<u8>` on success,
         /// or an `Error` on failure.
-        fn sign_data_call(environment: &JNIEnv, data: &[u8]) -> Vec<u8> {
-            data.to_vec()
-            // let data = data.to_vec();
-            // Self::sign_data(environment, data)
+        fn sign_data(environment: &JNIEnv, data: &[u8]) -> Result<Vec<u8>, Error> {
+            // Preparing parameters
+            let class = environment.find_class("com/example/vulcans_limes/RustDef")
+                .expect("Find_class failed");
+            let data = environment.byte_array_from_slice(data)
+                .expect("Conversion failed");
 
-            // let data = JValue::from(data.to_vec()); //DOESNT WORK; NEEDS FIX
-            // let result = environment.call_static_method(
-            //     "com/example/vulcans_limes/RustDef",
-            //     "initialize_module",
-            //     "(Ljava.util.ArrayList<byte>)V",
-            //     &[data],
-            // );
-            // return match result {
-            //     Ok(..) => Ok(()),
-            //     Err(e) => Err(Error),
-            // }
+            //calling the Java method
+            let result = environment.call_static_method(
+                class,
+                "sign_data",
+                "([B)Ljava/lang/String;",
+                &[JValue::from(data)],
+            );
+
+            // interpreting the result
+            Self::interpret_result(environment, result)
         }
 
-        // pub extern "java" fn sign_data(environment: &JNIEnv, data: Vec<u8>) -> Result<_, Error> {}
+        /// Interprets the result of a JNI method call that returns a byte[],
+        /// converting a `Result<JValue, Error>`into a `Result<Vec<u8>, Error>`.
+        /// e.g. the JValue containing
+        /// [48, 49, 47, 48, 48, 47, 48, 48, 47, 48, 48, 47, 48, 48, 47, 70, 50, 47, 42]
+        /// first gest converted to the ASCII values "01/00/00/00/00/F2/*",
+        /// and the method returns [1,0,0,0,0,242]
+        ///
+        /// # Arguments
+        ///
+        /// * `environment` - A reference to the JNIEnv.
+        /// * `result` - The result of the JNI operation, containing a `JValue` representing
+        ///              a hexadecimal representation of bytes, separated by '/'.
+        ///
+        /// # Returns
+        ///
+        /// A `Result` containing a `Vec<u8>` if the operation was successful,
+        /// or an `Error` if it failed.
+        ///
+        /// # Errors
+        ///
+        /// This function may return an error if any of the JNI operations fail.
+        fn interpret_result(environment: &JNIEnv, result: Result<JValue, Error>)
+                            -> Result<Vec<u8>, Error> {
+            match result {
+                Ok(data) => {
+                    // Convert JValue to Vec<u8> containing the ASCII values
+                    // for the transmitted bytes
+                    let obj = data.l().expect("to JObj failed");
+                    let string = JString::from(obj);
+                    let rustring = environment.get_string(string).expect("JavaStr failed");
+                    let mut vec = Vec::from(rustring.to_str().unwrap());
+
+                    //Convert the ASCII values to bytes and store them in a Vec<u8>
+                    vec.remove(vec.len() - 1); //discard last transmitted symbol - is always a '*'
+                    let mut result: Vec<u8> = Vec::new();
+                    result.reserve(vec.len());
+                    for i in (0..vec.len() as i32).step_by(3) {
+                        //Convert the next two ASCII values to their corresponding Hex Values
+                        let mut v1 = (*vec.get(i as usize).unwrap() as char)
+                            .to_digit(16).unwrap() as u8;
+                        let v2 = (*vec.get((i + 1) as usize).expect("1") as char)
+                            .to_digit(16).expect("2") as u8;
+                        // Combine both Hex Numbers into one with bitshift and bitwise OR
+                        v1 = (v1 << 4) | v2;
+                        //store result
+                        result.push(v1);
+                    }
+                    Ok(result)
+                }
+                Err(e) => { Err(e) } // pass any errors through unchanged
+            }
+        }
     }
 }

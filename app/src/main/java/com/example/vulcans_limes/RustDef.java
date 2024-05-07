@@ -1,6 +1,8 @@
 package com.example.vulcans_limes;
 
 
+import java.lang.reflect.Array;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
 
@@ -37,6 +39,7 @@ class RustDef {
     static {
         // This call loads the dynamic library containing the Rust code.
         System.loadLibrary("vulcanslimes");
+
     }
 
     //----------------------------------------------------------------------------------------------
@@ -52,7 +55,7 @@ class RustDef {
     Proof of concept method - shows callback from Rust to a java method
     ONLY USE FOR TESTING
      */
-    static native void callRust();
+    static native String callRust();
 
     /**
      * Is called to start all demo method calls from the Rust side
@@ -72,7 +75,7 @@ class RustDef {
     /*
     CryptoManger object for execution of methods
      */
-    static CryptoManager cryptoManager;
+//    static CryptoManager cryptoManager;
 
     /*
      Proof of concept method - get called from Rust when callRust() gets called
@@ -90,7 +93,7 @@ class RustDef {
      * @param key_id - String that uniquely identifies the key so that it can be retrieved later
      */
     static void create_key(String key_id) {
-        cryptoManager.genKey(key_id);
+//        cryptoManager.genKey(key_id);
     }
 
     /**
@@ -102,7 +105,7 @@ class RustDef {
      * @param key_id - String that uniquely identifies the key so that it can be retrieved later
      */
     static void load_key(String key_id) {
-        cryptoManager.setKEY_NAME(key_id);
+//        cryptoManager.setKEY_NAME(key_id);
     }
 
     /**
@@ -122,7 +125,7 @@ class RustDef {
                                   String hash,
                                   ArrayList<String> key_usages) {
         //TODO @Erik MUST implement asymmetric encrytion in CryptoManager
-        cryptoManager = new CryptoManager(key_algorithm, sym_algorithm, hash, key_usages);
+//        cryptoManager = new CryptoManager(key_algorithm, sym_algorithm, hash, key_usages);
 
     }
 
@@ -132,10 +135,22 @@ class RustDef {
      * @param data - A byte array representing the data to be signed
      * @return - The signed data
      */
-    static ArrayList<Byte> sign_data(ArrayList<Byte> data) {
+    static String sign_data(byte[] data) {
         //TODO @Erik implement signing of data in CryptoManager
-        System.out.println("Recieved data in sign_data: " + data);
-        return null;
+        System.out.println("Recieved data in sign_data: " + Arrays.toString(data));
+        byte[] result = new byte[data.length+1];
+        System.arraycopy(data, 0, result, 0, data.length);
+        result[data.length] = (byte) 242;
+
+
+        return byteToString(result);
+    }
+    static String byteToString(byte[] data){
+        StringBuilder result = new StringBuilder();
+        for (byte datum : data) {
+            result.append(String.format("%02X", datum)).append("/");
+        }
+        return result.toString();
     }
 
     /**
@@ -157,7 +172,8 @@ class RustDef {
      * @return - an ArrayList\<Byte\> containing the encrypted data
      */
     static ArrayList<Byte> encrypt_data(byte[] data) throws Exception {
-        return new ArrayList<>(Arrays.asList(cryptoManager.toByte(cryptoManager.encryptData(data))));
+//        return new ArrayList<>(Arrays.asList(cryptoManager.toByte(cryptoManager.encryptData(data))));
+        return null;
     }
 
     /**
@@ -167,6 +183,7 @@ class RustDef {
      * @return - an ArrayList\<Byte\> containing the encrypted data
      */
     static ArrayList<Byte> decrypt_data(byte[] encrypted_data) throws Exception {
-        return new ArrayList<>(Arrays.asList(cryptoManager.toByte(cryptoManager.decryptData(encrypted_data))));
+//        return new ArrayList<>(Arrays.asList(cryptoManager.toByte(cryptoManager.decryptData(encrypted_data))));
+        return null;
     }
 }

@@ -90,9 +90,9 @@ public class MainActivity extends AppCompatActivity {
             try {
               // TODO:  decrypt();
                 System.out.println("CheckCall");
-                byte[] data = new byte[3];
-                data[0] = 3;
-                System.out.println(Arrays.toString(RustDef.demoEncrypt(data)));
+                byte[] data = new byte[5];
+                data[0] = (byte) 1;
+                System.out.println(Arrays.toString(RustDef.demoSign(data)));
             } catch (Exception e) {
                 Toast.makeText(MainActivity.this, "Fail to decrypt image", Toast.LENGTH_SHORT).show();
                 e.printStackTrace();

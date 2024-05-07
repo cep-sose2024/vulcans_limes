@@ -8,10 +8,13 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
 import android.provider.MediaStore;
+import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
@@ -93,11 +96,10 @@ public class MainActivity extends AppCompatActivity {
         // When decrypt button is pressed
         decButton.setOnClickListener(v -> {
             try {
-              // TODO:  decrypt();
-                System.out.println("CheckCall");
-                byte[] data = new byte[3];
-                data[0] = 3;
-                System.out.println(Arrays.toString(RustDef.demoEncrypt(data)));
+              if(decryptPicture()){
+                  Toast.makeText(MainActivity.this, "Succesful decrypt!", Toast.LENGTH_SHORT).show();
+              }
+
             } catch (Exception e) {
                 Toast.makeText(MainActivity.this, "Fail to decrypt image", Toast.LENGTH_SHORT).show();
                 e.printStackTrace();
@@ -198,6 +200,30 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
+    private boolean decryptPicture() throws Exception {
+
+        ContextWrapper contextWrapper = new ContextWrapper(getApplication());
+        File photoDir = contextWrapper.getExternalFilesDir(Environment.DIRECTORY_DCIM);
+        File encFile = new File(photoDir, "encfile" + ".jpg");
+
+        byte[] bytes = toByteArray(encFile.getPath());
+
+        File decFile = new File(photoDir,"decfile.jpg");
+
+        byte[] decBytes = cryptoManager.decryptData(bytes);
+
+        createFileFromByteArray(decBytes, decFile);
+
+
+        File imgFile = new File(decFile.getPath());
+        if(imgFile.exists()){
+            Bitmap bitmap = BitmapFactory.decodeFile(imgFile.getPath());
+            imageView.setImageBitmap(bitmap);
+        }
+        return true;
+
+    }
+
     private void handleActivityResult(Intent data) {
         if (data != null) {
             Uri imgUri = data.getData();
@@ -232,9 +258,12 @@ public class MainActivity extends AppCompatActivity {
             File encFile = new File(photoDir, "encfile" + ".jpg");
             byte[] encryptedData = cryptoManager.encryptData(toByteArray(path));
             createFileFromByteArray(encryptedData, encFile);
+
             return true;
-        }catch (Exception e){
+        } catch (Exception e) {
             e.printStackTrace();
+            View view = findViewById(android.R.id.content);
+            Snackbar.make(view, "encrypt failed!", Snackbar.LENGTH_SHORT).show();
             return false;
         }
     }

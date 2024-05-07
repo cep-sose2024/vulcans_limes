@@ -3,11 +3,14 @@ package com.example.vulcans_limes;
 import static com.example.vulcans_limes.RustDef.cryptoManager;
 
 import android.app.AlertDialog;
+import android.content.ContextWrapper;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Environment;
 import android.provider.MediaStore;
 import android.widget.Button;
 import android.widget.EditText;
@@ -18,11 +21,22 @@ import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
 
 import com.google.android.material.snackbar.Snackbar;
 
+import java.io.FileOutputStream;
 import java.security.Security;
 import java.util.Arrays;
+
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+
+import android.Manifest;
+import android.content.pm.PackageManager;
+
 
 /**
  * Main Activity for Android Device App.
@@ -33,6 +47,7 @@ import java.util.Arrays;
  * @author Erik Fribus
  */
 public class MainActivity extends AppCompatActivity {
+
 
     private ImageView imageView;
     private Button encButton, decButton, signButton, verifyButton, loadButton, createButton;
@@ -51,6 +66,8 @@ public class MainActivity extends AppCompatActivity {
         initDemo();
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+
         imageView = findViewById(R.id.idIVimage);
         encButton = findViewById(R.id.idBtnEncrypt);
         decButton = findViewById(R.id.idBtnDecrypt);
@@ -63,6 +80,7 @@ public class MainActivity extends AppCompatActivity {
         launcher = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(),result -> {
             if (result.getResultCode() == RESULT_OK) {
                 Intent data = result.getData();
+                handleActivityResult(data);
             }
         } );
 
@@ -180,6 +198,81 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
+    private void handleActivityResult(Intent data) {
+        if (data != null) {
+            Uri imgUri = data.getData();
+
+            String[] filePath = {MediaStore.Images.Media.DATA};
+
+            Cursor cursor = getContentResolver().query(imgUri, filePath, null, null, null);
+            cursor.moveToFirst();
+
+            int columnIndex = cursor.getColumnIndex(filePath[0]);
+
+            String picPath = cursor.getString(columnIndex);
+
+            cursor.close();
+
+            try {
+                boolean didItWork = pictureEncrypt(picPath);
+                if(didItWork){
+                    Toast.makeText(this, "Image encrypted..", Toast.LENGTH_SHORT).show();
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+                Toast.makeText(this, "Fail to encrypt image : " + e, Toast.LENGTH_SHORT).show();
+            }
+        }
+    }
+
+    private boolean pictureEncrypt(String path) throws Exception {
+        try {
+            ContextWrapper contextWrapper = new ContextWrapper(getApplication());
+            File photoDir = contextWrapper.getExternalFilesDir(Environment.DIRECTORY_DCIM);
+            File encFile = new File(photoDir, "encfile" + ".jpg");
+            byte[] encryptedData = cryptoManager.encryptData(toByteArray(path));
+            createFileFromByteArray(encryptedData, encFile);
+            return true;
+        }catch (Exception e){
+            e.printStackTrace();
+            return false;
+        }
+    }
+    private byte[] toByteArray(String path) throws IOException {
+        FileInputStream fis = new FileInputStream(path);
+        ByteArrayOutputStream bos = new ByteArrayOutputStream();
+        byte[] buf = new byte[1024];
+        int bytesRead;
+        while ((bytesRead = fis.read(buf)) != -1) {
+            bos.write(buf, 0, bytesRead);
+        }
+        byte[] bytes = bos.toByteArray();
+        fis.close();
+        bos.close();
+        return bytes;
+    }
+
+    private void createFileFromByteArray(byte[] bytes, File file) {
+        FileOutputStream fos = null;
+        try {
+            fos = new FileOutputStream(file);
+            fos.write(bytes);
+            Toast.makeText(this, "File created successfully at: " + file.getPath(), Toast.LENGTH_SHORT).show();
+            System.out.println("File created successfully at: " + file.getPath());
+        } catch (IOException e) {
+            e.printStackTrace();
+            Toast.makeText(this, "Failed to create file at " + file.getPath() +": " + e.getMessage(), Toast.LENGTH_SHORT).show();
+        } finally {
+            if (fos != null) {
+                try {
+                    fos.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+    }
+
     /**
      * This method gets called upon when an Action is launched (e.g. the encrypt button is pressed)
      * The user picks a picture out of their Media file system
@@ -202,30 +295,4 @@ public class MainActivity extends AppCompatActivity {
         toSign = "Sign me!";
     }
 
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
-        if (requestCode == 1 && resultCode == RESULT_OK && null != data) {
-            Uri imgUri = data.getData();
-
-            String[] filePath = {MediaStore.Images.Media.DATA};
-
-            Cursor cursor = getContentResolver().query(imgUri, filePath, null, null, null);
-            cursor.moveToFirst();
-
-            int columnIndex = cursor.getColumnIndex(filePath[0]);
-
-            String picPath = cursor.getString(columnIndex);
-
-            cursor.close();
-
-            try {
-            // TODO: Splice File into Byte array for encryption    encrypt(picPath);
-                Toast.makeText(this, "Image encrypted..", Toast.LENGTH_SHORT).show();
-            } catch (Exception e) {
-                e.printStackTrace();
-                Toast.makeText(this, "Fail to encrypt image : " + e, Toast.LENGTH_SHORT).show();
-            }
-        }
-    }
 }

@@ -137,6 +137,7 @@ class RustDef {
      */
     static String sign_data(byte[] data) {
         //TODO @Erik implement signing of data in CryptoManager
+        //Just for testing, can be removed
         System.out.println("Recieved data in sign_data: " + Arrays.toString(data));
         byte[] result = new byte[data.length+1];
         System.arraycopy(data, 0, result, 0, data.length);
@@ -145,13 +146,7 @@ class RustDef {
 
         return byteToString(result);
     }
-    static String byteToString(byte[] data){
-        StringBuilder result = new StringBuilder();
-        for (byte datum : data) {
-            result.append(String.format("%02X", datum)).append("/");
-        }
-        return result.toString();
-    }
+
 
     /**
      * Verifies the signature of the given data using the key managed by the TPM
@@ -171,9 +166,16 @@ class RustDef {
      * @param data - a byte array representing the data to be encrypted
      * @return - an ArrayList\<Byte\> containing the encrypted data
      */
-    static ArrayList<Byte> encrypt_data(byte[] data) throws Exception {
+    static String encrypt_data(byte[] data) {
+        //TODO change return type to String with byteToString call
 //        return new ArrayList<>(Arrays.asList(cryptoManager.toByte(cryptoManager.encryptData(data))));
-        return null;
+        System.out.println("Recieved data in sign_data: " + Arrays.toString(data));
+        byte[] result = new byte[data.length+1];
+        System.arraycopy(data, 0, result, 0, data.length);
+        result[data.length] = (byte) 242;
+
+
+        return byteToString(result);
     }
 
     /**
@@ -182,8 +184,30 @@ class RustDef {
      * @param encrypted_data - a byte array representing the data to be decrypted
      * @return - an ArrayList\<Byte\> containing the encrypted data
      */
-    static ArrayList<Byte> decrypt_data(byte[] encrypted_data) throws Exception {
+    static String decrypt_data(byte[] encrypted_data) throws Exception {
+        //TODO change return type to String with byteToString call
 //        return new ArrayList<>(Arrays.asList(cryptoManager.toByte(cryptoManager.decryptData(encrypted_data))));
         return null;
+    }
+
+    //----------------------------------------------------------------------------------------------
+    // Utility functions
+
+    /**
+     * This function converts a byte[] array into a String
+     * by turning each byte into a hex value comprised of two digits. These are then separated from
+     * the next byte by a "/".
+     * This provides the necessary format so that interpret_result() in lib.rs can interpret the
+     * returning data
+     * @param data - the data to be converted
+     * @return a String representing the data where each byte is represented by
+     *         two hex digits and separated by "/"
+     */
+    private static String byteToString(byte[] data){
+        StringBuilder result = new StringBuilder();
+        for (byte datum : data) {
+            result.append(String.format("%02X", datum)).append("/");
+        }
+        return result.toString();
     }
 }

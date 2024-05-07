@@ -63,15 +63,18 @@ pub mod jni {
 
         /// Is called to Demo Encryption from Rust
         pub extern "jni" fn demoEncrypt(environment: &JNIEnv, data: Box<[u8]>) -> Box<[u8]> {
-            todo!()
+            let result = Self::encrypt_data(environment, data.as_ref())
+                .expect("Sign_data failed");
+            result.into_boxed_slice()
         }
 
         pub extern "jni" fn demoDecrypt(environment: &JNIEnv, data: Box<[u8]>) -> Box<[u8]> {
-            todo!()
+            let result = Self::decrypt_data(environment, data.as_ref())
+                .expect("Sign_data failed");
+            result.into_boxed_slice()
         }
 
         pub extern "jni" fn demoSign(environment: &JNIEnv, data: Box<[u8]>) -> Box<[u8]> {
-            //TESTING - CAN BE REMOVED
             let result = Self::sign_data(environment, data.as_ref())
                 .expect("Sign_data failed");
             result.into_boxed_slice()
@@ -106,12 +109,11 @@ pub mod jni {
         /// # Arguments
         /// `key_id` - String that uniquely identifies the key so that it can be retrieved later
         pub fn create_key(environment: &JNIEnv, key_id: String) -> Result<(), Error> {
-            let key_id = JValue::from(environment.new_string(key_id).unwrap());
             let result = environment.call_static_method(
                 "com/example/vulcans_limes/RustDef",
                 "create_key",
                 "(Ljava/lang/String;)V",
-                &[key_id],
+                &[JValue::from(environment.new_string(key_id).unwrap())],
             );
             return match result {
                 Ok(..) => Ok(()),
@@ -127,12 +129,11 @@ pub mod jni {
         /// # Arguments
         /// `key_id` - String that uniquely identifies the key so that it can be retrieved later
         pub fn load_key(environment: &JNIEnv, key_id: String) -> Result<(), Error> {
-            let key_id = JValue::from(environment.new_string(key_id).unwrap());
             let result = environment.call_static_method(
                 "com/example/vulcans_limes/RustDef",
                 "create_key",
                 "(Ljava/lang/String;)V",
-                &[key_id],
+                &[JValue::from(environment.new_string(key_id).unwrap())],
             );
             return match result {
                 Ok(..) => Ok(()),
@@ -164,16 +165,14 @@ pub mod jni {
                                  hash: String,
                                  key_usages: String)
                                  -> Result<(), Error> {
-            let key_algorithm = JValue::from(environment.new_string(key_algorithm).unwrap());
-            let sym_algorithm = JValue::from(environment.new_string(sym_algorithm).unwrap());
-            let hash = JValue::from(environment.new_string(hash).unwrap());
-            let key_usages = JValue::from(environment.new_string(key_usages).unwrap());
-
             let result = environment.call_static_method(
                 "com/example/vulcans_limes/RustDef",
                 "initialize_module",
                 "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V",
-                &[key_algorithm, sym_algorithm, hash, key_usages],
+                &[JValue::from(environment.new_string(key_algorithm).unwrap()),
+                    JValue::from(environment.new_string(sym_algorithm).unwrap()),
+                    JValue::from(environment.new_string(hash).unwrap()),
+                    JValue::from(environment.new_string(key_usages).unwrap())],
             );
             return match result {
                 Ok(..) => Ok(()),
@@ -192,30 +191,91 @@ pub mod jni {
         /// A `Result` containing the signature as a `Vec<u8>` on success,
         /// or an `Error` on failure.
         fn sign_data(environment: &JNIEnv, data: &[u8]) -> Result<Vec<u8>, Error> {
-            // Preparing parameters
-            let class = environment.find_class("com/example/vulcans_limes/RustDef")
-                .expect("Find_class failed");
-            let data = environment.byte_array_from_slice(data)
-                .expect("Conversion failed");
-
-            //calling the Java method
             let result = environment.call_static_method(
-                class,
+                "com/example/vulcans_limes/RustDef",
                 "sign_data",
                 "([B)Ljava/lang/String;",
-                &[JValue::from(data)],
+                &[JValue::from(environment.byte_array_from_slice(data).unwrap())],
             );
-
-            // interpreting the result
             Self::interpret_result(environment, result)
         }
 
+        /// Verifies the signature of the given data using the key managed by the TPM
+        ///
+        /// # Arguments
+        ///
+        /// * `data` - A byte slice representing the data whose signature is to be verified
+        /// * `signature` - A byte slice representing the signature to be verified.
+        ///
+        /// # Returns
+        ///
+        /// A `Result` containing a `bool` signifying whether the signature is valid,
+        /// or an `Error` on failure to determine the validity.
+        fn verify_signature(environment: &JNIEnv, data: &[u8], signature: &[u8]) -> Result<bool, Error> {
+            let result = environment.call_static_method(
+                "com/example/vulcans_limes/RustDef",
+                "verify_signature",
+                "([B[B)Z",
+                &[JValue::from(environment.byte_array_from_slice(data).unwrap()),
+                    JValue::from(environment.byte_array_from_slice(signature).unwrap())],
+            );
+            result.unwrap().z()
+        }
+
+        /// Encrypts the given data using the key managed by the TPM
+        ///
+        /// # Arguments
+        ///
+        /// * `data` - A byte slice representing the data to be encrypted.
+        ///
+        /// # Returns
+        ///
+        /// A `Result` containing the encrypted data as a `Vec<u8>` on success,
+        /// or an `Error` on failure.
+        fn encrypt_data(environment: &JNIEnv, data: &[u8]) -> Result<Vec<u8>, Error> {
+            let result = environment.call_static_method(
+                "com/example/vulcans_limes/RustDef",
+                "encrypt_data",
+                "([B)Ljava/lang/String;",
+                &[JValue::from(environment.byte_array_from_slice(data).unwrap())],
+            );
+            Self::interpret_result(environment, result)
+        }
+
+        /// Decrypts the given data using the key managed by the TPM
+        ///
+        /// # Arguments
+        ///
+        /// * `data` - A byte slice representing the data to be Decrypted.
+        ///
+        /// # Returns
+        ///
+        /// A `Result` containing the Decrypted data as a `Vec<u8>` on success,
+        /// or an `Error` on failure.
+        fn decrypt_data(environment: &JNIEnv, data: &[u8]) -> Result<Vec<u8>, Error> {
+            let result = environment.call_static_method(
+                "com/example/vulcans_limes/RustDef",
+                "decrypt_data",
+                "([B)Ljava/lang/String;",
+                &[JValue::from(environment.byte_array_from_slice(data).unwrap())],
+            );
+            Self::interpret_result(environment, result)
+        }
+
+        //------------------------------------------------------------------------------------------
+        // Utility Functions that are only used by other Rust functions.
+        // These functions have no relation to RustDef.java
+
+
         /// Interprets the result of a JNI method call that returns a byte[],
         /// converting a `Result<JValue, Error>`into a `Result<Vec<u8>, Error>`.
+        /// <p>
         /// e.g. the JValue containing
-        /// [48, 49, 47, 48, 48, 47, 48, 48, 47, 48, 48, 47, 48, 48, 47, 70, 50, 47, 42]
-        /// first gest converted to the ASCII values "01/00/00/00/00/F2/*",
-        /// and the method returns [1,0,0,0,0,242]
+        /// <p>
+        /// \[48, 49, 47, 48, 48, 47, 48, 48, 47, 48, 48, 47, 48, 48, 47, 70, 50, 47, 42]
+        /// <p>
+        /// first gets converted to the ASCII values "01/00/00/00/00/F2/*",
+        /// and the method returns \[1,0,0,0,0,242]
         ///
         /// # Arguments
         ///

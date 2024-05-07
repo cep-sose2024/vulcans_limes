@@ -38,7 +38,9 @@ public class MainActivity extends AppCompatActivity {
     private Button encButton, decButton, signButton, verifyButton, loadButton, createButton;
     private ActivityResultLauncher<Intent> launcher;
 
+    private CryptoManager cryptoManager;
 
+    private String toSign;
 
     @Override
     /**
@@ -46,6 +48,7 @@ public class MainActivity extends AppCompatActivity {
      *
      */
     protected void onCreate(Bundle savedInstanceState) {
+        initDemo();
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         System.out.println(Security.getProviders());
@@ -186,6 +189,16 @@ public class MainActivity extends AppCompatActivity {
      *               (various data can be attached to Intent "extras").
      *
      */
+
+
+    /**
+     * This method initializes everything important for the demo.
+     */
+    private void initDemo(){
+        cryptoManager = new CryptoManager("AES");
+        toSign = "Sign me!";
+    }
+
     @Override
     protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
         super.onActivityResult(requestCode, resultCode, data);

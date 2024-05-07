@@ -294,6 +294,7 @@ public class CryptoManager {
      * @param key_id    unique identifier of a key
      */
     public void setKEY_NAME(String key_id) {
+        //TODO does key exist? ==> boolean
         KEY_NAME = key_id;
     }
 }

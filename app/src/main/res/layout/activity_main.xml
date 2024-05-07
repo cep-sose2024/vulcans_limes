@@ -32,6 +32,7 @@
         android:layout_margin="10dp"
         android:text="Decrypt" />
 
+    <!-- not implemented
     <Button
         android:id="@+id/idBtnSign"
         android:layout_width="match_parent"
@@ -48,11 +49,13 @@
         android:layout_margin="10dp"
         android:text="Verify"/>
 
+        -->
+
     <Button
         android:id="@+id/idBtnLoad"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_below="@id/idBtnVerify"
+        android:layout_below="@id/idBtnDecrypt"
         android:layout_margin="10dp"
         android:text="Load key"/>
 

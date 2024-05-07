@@ -51,12 +51,11 @@ public class MainActivity extends AppCompatActivity {
         initDemo();
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        System.out.println(Security.getProviders());
         imageView = findViewById(R.id.idIVimage);
         encButton = findViewById(R.id.idBtnEncrypt);
         decButton = findViewById(R.id.idBtnDecrypt);
-        signButton = findViewById(R.id.idBtnSign);
-        verifyButton = findViewById(R.id.idBtnVerify);
+        //signButton = findViewById(R.id.idBtnSign);
+        //verifyButton = findViewById(R.id.idBtnVerify);
         loadButton = findViewById(R.id.idBtnLoad);
         createButton = findViewById(R.id.idBtnCreate);
 
@@ -87,6 +86,7 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
+        /*
         //When sign button is pressed
         signButton.setOnClickListener(v -> {
             try{
@@ -100,6 +100,7 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
+
         //When verify button is pressed
         verifyButton.setOnClickListener(v -> {
             try{
@@ -110,6 +111,7 @@ public class MainActivity extends AppCompatActivity {
                 e.printStackTrace();
             }
         });
+        */
 
         //When load key button is pressed
         loadButton.setOnClickListener(v -> {
@@ -142,6 +144,7 @@ public class MainActivity extends AppCompatActivity {
                 e.printStackTrace();
             }
         });
+
 
         //When create key button is pressed
         createButton.setOnClickListener(v -> {

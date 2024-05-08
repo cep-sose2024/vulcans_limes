@@ -63,16 +63,19 @@ mod jni {
         }
 
         /// Is called to Demo Encryption from Rust
-        pub extern "jni" fn demoEncrypt(environment: &JNIEnv, data: Box<[u8]>) -> Box<[u8]> {
+        pub extern "jni" fn demoEncrypt(environment: &JNIEnv, data: Box<[u8]>) -> Vec<u8> {
             //TESTING - CAN BE REMOVED
             let mut result = data.into_vec();
             result.push(42);
-            result.into_boxed_slice()
+            result.into_boxed_slice() todo!(Result should be a Vec<u8>)
+
 
         }
 
-        pub extern "jni" fn demoDecrypt(environment: &JNIEnv, data: Box<[u8]>) -> Box<[u8]> {
-            todo!()
+        pub extern "jni" fn demoDecrypt(environment: &JNIEnv, data: Box<[u8]>) -> Vec<u8> {
+            let mut result = data.into_vec();
+            result.push(42);
+            result.into_boxed_slice() todo!(Result should be a Vec<u8>)
         }
 
         pub extern "jni" fn demoSign(environment: &JNIEnv, data: Box<[u8]>) -> Box<[u8]> {
@@ -81,6 +84,26 @@ mod jni {
 
         pub extern "jni" fn demoVerify(environment: &JNIEnv, data: Box<[u8]>) -> bool {
             todo!()
+        }
+
+        pub extern "jni" fn demoInitModule(environment: &JNIEnv, algorithm: String) -> () {
+            Self::initialize_demo_module(environment, algorithm);
+        }
+
+        pub extern "jni" fn demoGenKey(environment: &JNIEnv, keyID: String) -> bool {
+            let result = Self::create_key(environment, keyID);
+            return match result {
+                            Ok(..) => true,
+                            Err(e) => false,
+                        }
+        }
+
+        pub extern "jni" fn demoLoadKey(environment: &JNIEnv, keyID: String) -> bool {
+            let result = Self::load_key(environment, keyID);
+                    return match result {
+                                    Ok(..) => true,
+                                    Err(e) => false,
+                                }
         }
 
 
@@ -183,6 +206,23 @@ mod jni {
                 Err(e) => Err(Error),
             }
         }
+         pub fn initialize_demo_module(environment: &JNIEnv,
+                                  key_algorithm: String,
+                                  )
+                                  -> Result<(), Error> {
+             let key_algorithm = JValue::from(environment.new_string(key_algorithm).unwrap());
+
+             let result = environment.call_static_method(
+                 "com/example/vulcans_limes/RustDef",
+                 "initialize_demo_module",
+                 "(Ljava/lang/String;)V",
+                 &[key_algorithm],
+             );
+             return match result {
+                 Ok(..) => Ok(()),
+                 Err(e) => Err(Error),
+             }
+         }
 
         /// Signs the given data using the cryptographic key managed by the TPM provider.
         ///

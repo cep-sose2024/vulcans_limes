@@ -58,13 +58,19 @@ class RustDef {
      * Is called to start all demo method calls from the Rust side
      * --temporary--
      */
-    static native byte[] demoEncrypt(byte[] data);
+    static native ArrayList<Byte> demoEncrypt(byte[] data);
 
-    static native byte[] demoDecrypt(byte[] data);
+    static native ArrayList<Byte> demoDecrypt(byte[] data);
 
     static native byte[] demoSign(byte[] data);
 
     static native boolean demoVerify(byte[] data);
+
+    static native void demoInitModule(String algorithm);
+
+    static native boolean demoGenKey(String keyID);
+
+    static native boolean demoLoadKey(String keyID);
 
     //----------------------------------------------------------------------------------------------
     //Java methods that can be called from Rust
@@ -125,6 +131,11 @@ class RustDef {
         cryptoManager = new CryptoManager(key_algorithm, sym_algorithm, hash, key_usages);
 
     }
+    static void initialize_demo_module(String key_algorithm) {
+        //TODO @Erik MUST implement asymmetric encrytion in CryptoManager
+        cryptoManager = new CryptoManager(key_algorithm);
+
+    }
 
     /**
      * Signs the given data using the key managed by the TPM
@@ -147,7 +158,7 @@ class RustDef {
      * @return - true if the signature is vaild, false otherwise
      */
     static boolean verify_signature(byte[] data, byte[] signature) {
-        //TODO @Erik implement veryfication of signatures in CryptoManager
+        //TODO @Erik implement verification of signatures in CryptoManager
         return cryptoManager.verifySignature(data, signature);
     }
 

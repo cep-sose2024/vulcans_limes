@@ -1,6 +1,8 @@
 package com.example.vulcans_limes;
 
+import android.os.Build;
 import android.security.keystore.KeyGenParameterSpec;
+import android.security.keystore.KeyInfo;
 import android.security.keystore.KeyProperties;
 
 import java.io.IOException;
@@ -9,19 +11,23 @@ import java.security.Key;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.KeyStore;
+import java.security.KeyStoreException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.Signature;
+import java.security.UnrecoverableKeyException;
 import java.security.cert.CertificateException;
+import java.security.spec.InvalidKeySpecException;
 import java.util.ArrayList;
 import java.util.Arrays;
 
 import javax.crypto.Cipher;
 import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
+import javax.crypto.SecretKeyFactory;
 import javax.crypto.spec.IvParameterSpec;
 
 public class CryptoManager {
@@ -127,6 +133,7 @@ public class CryptoManager {
                         .setBlockModes(KeyProperties.BLOCK_MODE_CBC)
                         .setEncryptionPaddings(
                                 KeyProperties.ENCRYPTION_PADDING_PKCS7)
+                                .setIsStrongBoxBacked(true)
                         .build());
             } catch (NoSuchAlgorithmException |
                      InvalidAlgorithmParameterException
@@ -283,6 +290,11 @@ public class CryptoManager {
         }
     }
 
+    /**
+     * This method converts a byte array to an Byte array, later used for reading it into an Byte ArrayList
+     * @param bytesPrim primitive bytes to be converted
+     * @return object Bytes to be sent back
+     */
     public Byte[] toByte(byte[] bytesPrim) {
         Byte[] bytes = new Byte[bytesPrim.length];
         Arrays.setAll(bytes, n -> bytesPrim[n]);
@@ -293,8 +305,32 @@ public class CryptoManager {
      * this method sets KEY_NAME to the key_id for further use (e.g. before generating/loading a key with the given key_id)
      * @param key_id    unique identifier of a key
      */
-    public void setKEY_NAME(String key_id) {
-        //TODO does key exist? ==> boolean
+    public void setKEY_NAME(String key_id)  {
+        //TODO does key exist? is id already used? ==> boolean
         KEY_NAME = key_id;
+    }
+
+    /**
+     * This method prints all info about the currently loaded key, it should only be called in Testing or Demo!
+     */
+    public void showKeyInfo(){
+        try {
+            keyStore.load(null);
+            SecretKey secretKey = (SecretKey) keyStore.getKey(KEY_NAME, null);
+            //TESTING
+            SecretKeyFactory factory = SecretKeyFactory.getInstance(secretKey.getAlgorithm(), "AndroidKeyStore");
+            KeyInfo keyInfo;
+            keyInfo = (KeyInfo) factory.getKeySpec(secretKey, KeyInfo.class);
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                System.out.println("KeyID: "+keyInfo.getKeystoreAlias()+
+                        "\nBlock modules: "+Arrays.toString(keyInfo.getBlockModes())+
+                        "\nSecurity Level: "+keyInfo.getSecurityLevel()+
+                        "\nOrigin: "+keyInfo.getOrigin()+
+                        "\nPurpose: "+keyInfo.getPurposes());
+            }
+        } catch (KeyStoreException | IOException | CertificateException | InvalidKeySpecException | NoSuchAlgorithmException | NoSuchProviderException | UnrecoverableKeyException e) {
+            System.out.println("Error: Not an Android Keystore key."
+                    + e.getMessage());
+        }
     }
 }

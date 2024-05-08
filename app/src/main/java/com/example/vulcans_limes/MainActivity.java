@@ -147,6 +147,10 @@ public class MainActivity extends AppCompatActivity {
                     public void onClick(DialogInterface dialog, int which) {
                         String keyId = input.getText().toString();
                         cryptoManager.setKEY_NAME(keyId);
+                        // showKeyInfo only for Testing and Demo!
+                        // TODO: for future error handling setKey_NAME should return a boolean to be used her for the snackbar
+                        // Upon calling for showKeyInfo with a non existend loaded KEY_NAME, java will throw a null pointer exception
+                        cryptoManager.showKeyInfo();
                         Snackbar.make(v, "The key with ID \"" + keyId + "\" was successfully loaded!", Snackbar.LENGTH_SHORT).show();
                     }
                 });
@@ -179,6 +183,8 @@ public class MainActivity extends AppCompatActivity {
                         String keyId = input.getText().toString();
                         boolean generatedSuccess = cryptoManager.genKey(keyId);
                         if(generatedSuccess){
+                            //showKeyInfo only for Testing and Demo!
+                            cryptoManager.showKeyInfo();
                             Snackbar.make(v, "The key with ID \"" + keyId + "\" was successfully created!", Snackbar.LENGTH_SHORT).show();
                         }
 

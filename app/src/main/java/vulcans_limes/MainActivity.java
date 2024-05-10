@@ -1,4 +1,4 @@
-package com.example.vulcans_limes;
+package vulcans_limes;
 
 import android.content.Intent;
 import android.database.Cursor;
@@ -7,17 +7,17 @@ import android.os.Bundle;
 import android.provider.MediaStore;
 import android.security.keystore.KeyGenParameterSpec;
 import android.security.keystore.KeyProperties;
-import android.view.View;
 import android.widget.Button;
 import android.widget.ImageView;
-import android.widget.ScrollView;
-import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
+
+import com.example.vulcans_limes.R;
+import vulcans_limes.RustDef;
 
 import java.io.IOException;
 import java.security.InvalidAlgorithmParameterException;
@@ -26,7 +26,6 @@ import java.security.KeyStore;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
 import java.security.cert.CertificateException;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
 

@@ -76,7 +76,7 @@ mod jni {
             //This calls a method in Java in the Class RustDef, with the method name "callback"
             //and no arguments
             let result = environment.call_static_method(
-                        "com/example/vulcans_limes/RustDef",
+                        "vulcans_limes/RustDef",
                         "callback",
                         "()V",
                         &[],
@@ -94,7 +94,7 @@ mod jni {
         pub fn create_key(environment: &JNIEnv, key_id: String) -> Result<(), Error> {
             let key_id = JValue::from(environment.new_string(key_id).unwrap());
             let result = environment.call_static_method(
-                "com/example/vulcans_limes/RustDef",
+                "vulcans_limes/RustDef",
                 "create_key",
                 "(Ljava/lang/String;)V",
                 &[key_id],
@@ -115,7 +115,7 @@ mod jni {
         pub fn load_key(environment: &JNIEnv, key_id: String) -> Result<(), Error> {
             let key_id = JValue::from(environment.new_string(key_id).unwrap());
             let result = environment.call_static_method(
-                "com/example/vulcans_limes/RustDef",
+                "vulcans_limes/RustDef",
                 "create_key",
                 "(Ljava/lang/String;)V",
                 &[key_id],
@@ -156,7 +156,7 @@ mod jni {
             let key_usages = JValue::from(environment.new_string(key_usages).unwrap());
 
             let result = environment.call_static_method(
-                "com/example/vulcans_limes/RustDef",
+                "vulcans_limes/RustDef",
                 "initialize_module",
                 "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V",
                 &[key_algorithm, sym_algorithm, hash, key_usages],
@@ -185,7 +185,7 @@ mod jni {
 
             // let data = JValue::from(data.to_vec()); //DOESNT WORK; NEEDS FIX
             // let result = environment.call_static_method(
-            //     "com/example/vulcans_limes/RustDef",
+            //     "vulcans_limes/RustDef",
             //     "initialize_module",
             //     "(Ljava.util.ArrayList<byte>)V",
             //     &[data],

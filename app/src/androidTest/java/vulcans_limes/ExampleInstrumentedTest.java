@@ -1,4 +1,4 @@
-package com.example.vulcans_limes;
+package vulcans_limes;
 
 import android.content.Context;
 

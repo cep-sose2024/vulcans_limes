@@ -1,7 +1,9 @@
-package com.example.vulcans_limes;
+package vulcans_limes;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+
+import vulcans_limes.CryptoManager;
 
 /**
  * This class provides the method declarations that are the interface for the JNI.

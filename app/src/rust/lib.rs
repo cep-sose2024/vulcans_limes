@@ -6,6 +6,7 @@ pub mod jni {
     use robusta_jni::bridge;
     use robusta_jni::convert::{IntoJavaValue, Signature, TryFromJavaValue, TryIntoJavaValue};
     use robusta_jni::jni::errors::Error;
+    use robusta_jni::jni::errors::Result as JniResult;
     use robusta_jni::jni::JNIEnv;
     use robusta_jni::jni::objects::{AutoLocal, JString, JValue};
 
@@ -55,10 +56,15 @@ pub mod jni {
         ///Proof of concept method - shows callback from Rust to a java method
         ///     ONLY USE FOR TESTING
         pub extern "jni" fn callRust(environment: &JNIEnv) -> String {
+            let result = Self::callback(environment);
+            return match result {
+                Ok(_) => String::from("Success"),
+                Err(_) => String::from("Failure")
+            };
+        }
 
-            //example usage of a java method call from rust
-            Self::create_key(environment, String::from("moin")).unwrap();
-            String::from("Success")
+        pub extern "jni" fn demoCreate(environment: &JNIEnv, keyName: String) -> bool {
+            Self::create_key(environment, keyName).unwrap()
         }
 
         /// Is called to Demo Encryption from Rust
@@ -88,18 +94,20 @@ pub mod jni {
         //------------------------------------------------------------------------------------------
         // Java methods that can be called from rust
 
-        ///Proof of concept method - shows callback from Rust to a java method
-        ///     DO NOT USE
-        pub fn callback(environment: &JNIEnv) -> () {
-            //This calls a method in Java in the Class RustDef, with the method name "callback"
-            //and no arguments
-            environment.call_static_method(
-                "com/example/vulcans_limes/RustDef",
-                "callback",
-                "()V",
-                &[],
-            ).expect("Java func call failed");
+        pub extern "java" fn callback(
+            env: &'borrow JNIEnv<'env>
+        ) -> JniResult<()> {
         }
+        // pub fn callback(environment: &JNIEnv) -> () {
+        //     //This calls a method in Java in the Class RustDef, with the method name "callback"
+        //     //and no arguments
+        //     environment.call_static_method(
+        //         "com/example/vulcans_limes/RustDef",
+        //         "callback",
+        //         "()V",
+        //         &[],
+        //     ).expect("Java func call failed");
+        // }
 
         /// Creates a new cryptographic key identified by `key_id`.
         ///
@@ -108,15 +116,15 @@ pub mod jni {
         ///
         /// # Arguments
         /// `key_id` - String that uniquely identifies the key so that it can be retrieved later
-        pub fn create_key(environment: &JNIEnv, key_id: String) -> Result<(), Error> {
+        pub fn create_key(environment: &JNIEnv, key_id: String) -> Result<bool, Error> {
             let result = environment.call_static_method(
                 "com/example/vulcans_limes/RustDef",
                 "create_key",
-                "(Ljava/lang/String;)V",
+                "(Ljava/lang/String;)Z",
                 &[JValue::from(environment.new_string(key_id).unwrap())],
             );
             return match result {
-                Ok(..) => Ok(()),
+                Ok(o) => Ok(o.z().unwrap()),
                 Err(e) => Err(e),
             };
         }

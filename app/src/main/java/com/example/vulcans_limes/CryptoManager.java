@@ -133,7 +133,7 @@ public class CryptoManager {
                         .setBlockModes(KeyProperties.BLOCK_MODE_CBC)
                         .setEncryptionPaddings(
                                 KeyProperties.ENCRYPTION_PADDING_PKCS7)
-                                .setIsStrongBoxBacked(true)
+//                                .setIsStrongBoxBacked(true)
                         .build());
             } catch (NoSuchAlgorithmException |
                      InvalidAlgorithmParameterException

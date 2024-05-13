@@ -95,15 +95,16 @@ public class MainActivity extends AppCompatActivity {
 
         // When decrypt button is pressed
         decButton.setOnClickListener(v -> {
-            try {
-              if(decryptPicture()){
-                  Toast.makeText(MainActivity.this, "Succesful decrypt!", Toast.LENGTH_SHORT).show();
-              }
-
-            } catch (Exception e) {
-                Toast.makeText(MainActivity.this, "Fail to decrypt image", Toast.LENGTH_SHORT).show();
-                e.printStackTrace();
-            }
+            RustDef.callRust();
+//            try {
+//              if(decryptPicture()){
+//                  Toast.makeText(MainActivity.this, "Succesful decrypt!", Toast.LENGTH_SHORT).show();
+//              }
+//
+//            } catch (Exception e) {
+//                Toast.makeText(MainActivity.this, "Fail to decrypt image", Toast.LENGTH_SHORT).show();
+//                e.printStackTrace();
+//            }
         });
 
         /*

@@ -57,10 +57,8 @@ class RustDef {
      */
     static native String callRust();
 
-    /**
-     * Is called to start all demo method calls from the Rust side
-     * --temporary--
-     */
+    static native boolean demoCreate(String keyName);
+
     static native byte[] demoEncrypt(byte[] data);
 
     static native byte[] demoDecrypt(byte[] data);
@@ -92,8 +90,8 @@ class RustDef {
      * and associated with the provided `key_id`.
      * @param key_id - String that uniquely identifies the key so that it can be retrieved later
      */
-    static void create_key(String key_id) {
-//        cryptoManager.genKey(key_id);
+    static boolean create_key(String key_id) {
+        return cryptoManager.genKey(key_id);
     }
 
     /**
@@ -125,8 +123,7 @@ class RustDef {
                                   String hash,
                                   ArrayList<String> key_usages) {
         //TODO @Erik MUST implement asymmetric encrytion in CryptoManager
-//        cryptoManager = new CryptoManager(key_algorithm, sym_algorithm, hash, key_usages);
-
+        cryptoManager = new CryptoManager(key_algorithm, sym_algorithm, hash, key_usages);
     }
 
     /**
@@ -182,8 +179,7 @@ class RustDef {
      */
     static String decrypt_data(byte[] encrypted_data) throws Exception {
         //TODO change return type to String with byteToString call
-//        return new ArrayList<>(Arrays.asList(cryptoManager.toByte(cryptoManager.decryptData(encrypted_data))));
-        return null;
+        return byteToString(cryptoManager.decryptData(encrypted_data));
     }
 
     //----------------------------------------------------------------------------------------------

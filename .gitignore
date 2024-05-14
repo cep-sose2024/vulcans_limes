@@ -3,6 +3,7 @@
 *.log
 *.iml
 *idea/
-build/
+app/build/
 .gradle/
-local.properties
+/local.properties
+/config.properties

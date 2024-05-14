@@ -171,4 +171,6 @@ class RustDef {
     static ArrayList<Byte> decrypt_data(byte[] encrypted_data) throws Exception {
         return new ArrayList<>(Arrays.asList(cryptoManager.toByte(cryptoManager.decryptData(encrypted_data))));
     }
+
+    //TODO: HASHING, WHAT RETURN VALUE??
 }

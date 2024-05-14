@@ -70,6 +70,13 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        cryptoManager.generateKeyPair("keyPair1");
+        byte[] bytes = new byte[] {1, 2, 3, 4, 5, 6};
+        System.out.println(Arrays.toString(bytes));
+        byte[] signedBytes = cryptoManager.signData(bytes);
+        System.out.println(Arrays.toString(signedBytes));
+        System.out.println("Signature Verified? "+ cryptoManager.verifySignature(bytes, signedBytes));
+
 
         imageView = findViewById(R.id.idIVimage);
         encButton = findViewById(R.id.idBtnEncrypt);

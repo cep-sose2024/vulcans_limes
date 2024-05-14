@@ -79,7 +79,7 @@ class RustDef {
      Proof of concept method - get called from Rust when callRust() gets called
         DO NOT USE
      */
-    static void callback() {
+    public void callback() {
         System.out.println("Callback successful");
     }
 

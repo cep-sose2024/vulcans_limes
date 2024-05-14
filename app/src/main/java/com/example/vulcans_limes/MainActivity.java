@@ -95,7 +95,7 @@ public class MainActivity extends AppCompatActivity {
 
         // When decrypt button is pressed
         decButton.setOnClickListener(v -> {
-            RustDef.callRust();
+            System.out.println(RustDef.callRust());
 //            try {
 //              if(decryptPicture()){
 //                  Toast.makeText(MainActivity.this, "Succesful decrypt!", Toast.LENGTH_SHORT).show();

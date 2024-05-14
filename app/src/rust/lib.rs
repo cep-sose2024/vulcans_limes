@@ -35,7 +35,7 @@ pub mod jni {
     /// | i16                                                | short                             |
     /// | String                                             | String                            |
     /// | Vec\<T\>                                           | ArrayList\<T\>                    |
-    /// | Box\<[u8]\>                                        | byte[]                            |
+    /// | Box\<\[u8]\>                                        | byte[]                            |
     /// | [jni::JObject<'env>](jni::objects::JObject)        | *(any Java object as input type)* |
     /// | [jni::jobject](jni::sys::jobject)                  | *(any Java object as output)*     |
     /// |----------------------------------------------------------------------------------------|
@@ -55,12 +55,27 @@ pub mod jni {
 
         ///Proof of concept method - shows callback from Rust to a java method
         ///     ONLY USE FOR TESTING
-        pub extern "jni" fn callRust(environment: &JNIEnv) -> String {
-            let result = Self::callback(environment);
-            return match result {
-                Ok(_) => String::from("Success"),
-                Err(_) => String::from("Failure")
-            };
+        pub extern "jni" fn callRust(environment: &'borrow JNIEnv<'env>) -> String {
+            // return String::from("Called");
+            let class = environment.find_class("com/example/vulcans_limes/RustDef").unwrap();
+            if environment.exception_check().unwrap() {
+                environment.exception_describe().expect("Describe failed");
+                environment.exception_clear().expect("Clear failed");
+                return String::from("Exception1")
+            }
+
+            let result = Self::callback(&environment);
+            if environment.exception_check().unwrap() {
+                eprintln!("Test");
+                environment.exception_describe().expect("Describe failed");
+                environment.exception_clear().expect("Clear failed");
+                return String::from("Exception2")
+            }
+            // return match result {
+            //     Ok(_) => String::from("Success"),
+            //     Err(_) => String::from("Failure")
+            // };
+            return String::from("End reached")
         }
 
         pub extern "jni" fn demoCreate(environment: &JNIEnv, keyName: String) -> bool {
@@ -94,10 +109,13 @@ pub mod jni {
         //------------------------------------------------------------------------------------------
         // Java methods that can be called from rust
 
+        // Version using Robusta - currently not working due to ClassNotFoundException
         pub extern "java" fn callback(
-            env: &'borrow JNIEnv<'env>
-        ) -> JniResult<()> {
-        }
+            &self,
+            env: &JNIEnv
+        ) -> JniResult<()> {}
+
+        //Version without Robusta, currently working
         // pub fn callback(environment: &JNIEnv) -> () {
         //     //This calls a method in Java in the Class RustDef, with the method name "callback"
         //     //and no arguments

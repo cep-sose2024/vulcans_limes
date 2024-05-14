@@ -63,8 +63,9 @@ pub mod jni {
                 environment.exception_clear().expect("Clear failed");
                 return String::from("Exception1")
             }
-
-            let result = Self::callback(&environment);
+            let obj = environment.new_object(class, "()V", &[]).unwrap();
+            let this = RustDef{ raw: AutoLocal::new(&environment, obj) };
+            let result = this.callback(&environment);
             if environment.exception_check().unwrap() {
                 eprintln!("Test");
                 environment.exception_describe().expect("Describe failed");
@@ -112,7 +113,7 @@ pub mod jni {
         // Version using Robusta - currently not working due to ClassNotFoundException
         pub extern "java" fn callback(
             &self,
-            env: &JNIEnv
+             env: &JNIEnv
         ) -> JniResult<()> {}
 
         //Version without Robusta, currently working

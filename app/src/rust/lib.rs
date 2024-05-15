@@ -2,8 +2,9 @@ use robusta_jni::bridge;
 
 #[bridge]
 pub mod jni {
+    use jni::errors::JniError;
     #[allow(unused_imports)]
-    use robusta_jni::bridge;
+        use robusta_jni::bridge;
     use robusta_jni::convert::{IntoJavaValue, Signature, TryFromJavaValue, TryIntoJavaValue};
     use robusta_jni::jni::errors::Error;
     use robusta_jni::jni::errors::Result as JniResult;
@@ -56,32 +57,35 @@ pub mod jni {
         ///Proof of concept method - shows callback from Rust to a java method
         ///     ONLY USE FOR TESTING
         pub extern "jni" fn callRust(environment: &'borrow JNIEnv<'env>) -> String {
-            // return String::from("Called");
-            let class = environment.find_class("com/example/vulcans_limes/RustDef").unwrap();
-            if environment.exception_check().unwrap() {
-                environment.exception_describe().expect("Describe failed");
-                environment.exception_clear().expect("Clear failed");
-                return String::from("Exception1")
+            let obj = match Self::get_obj(&environment) {
+                Ok(value) => value,
+                Err(value) => return value,
+            };
+            let result = obj.callback(&environment);
+            let exception = Self::check_java_exceptions(environment);
+            if exception.is_err() {
+                return String::from("A Java Exception occurred. Check Console for details");
             }
-            let obj = environment.new_object(class, "()V", &[]).unwrap();
-            let this = RustDef{ raw: AutoLocal::new(&environment, obj) };
-            let result = this.callback(&environment);
-            if environment.exception_check().unwrap() {
-                eprintln!("Test");
-                environment.exception_describe().expect("Describe failed");
-                environment.exception_clear().expect("Clear failed");
-                return String::from("Exception2")
-            }
-            // return match result {
-            //     Ok(_) => String::from("Success"),
-            //     Err(_) => String::from("Failure")
-            // };
-            return String::from("End reached")
+            return match result {
+                Ok(_) => String::from("Success"),
+                Err(_) => String::from("Failure")
+            };
         }
 
-        pub extern "jni" fn demoCreate(environment: &JNIEnv, keyName: String) -> bool {
-            Self::create_key(environment, keyName).unwrap()
+
+        ///This is an example how the method create_key() can be used.
+        pub extern "jni" fn demoCreate(environment: &'borrow JNIEnv<'env>, keyName: String) -> bool {
+            let obj = match Self::get_obj(&environment) {
+                Ok(value) => value,
+                Err(_) => return false,
+            };
+            let result = obj.create_key(&environment, keyName);
+            if Self::check_java_exceptions(environment).is_err() {
+                return false;
+            }
+            return result.unwrap_or_else(|_| false);
         }
+
 
         /// Is called to Demo Encryption from Rust
         pub extern "jni" fn demoEncrypt(environment: &JNIEnv, data: Box<[u8]>) -> Box<[u8]> {
@@ -110,23 +114,14 @@ pub mod jni {
         //------------------------------------------------------------------------------------------
         // Java methods that can be called from rust
 
-        // Version using Robusta - currently not working due to ClassNotFoundException
+        /// calls callback() in RustDef.java. Only for testing.
+        /// In order to call this method, it needs to be called from a RustDef object.
+        /// You can get this Object with the method get_obj()
         pub extern "java" fn callback(
             &self,
-             env: &JNIEnv
+            env: &JNIEnv,
         ) -> JniResult<()> {}
 
-        //Version without Robusta, currently working
-        // pub fn callback(environment: &JNIEnv) -> () {
-        //     //This calls a method in Java in the Class RustDef, with the method name "callback"
-        //     //and no arguments
-        //     environment.call_static_method(
-        //         "com/example/vulcans_limes/RustDef",
-        //         "callback",
-        //         "()V",
-        //         &[],
-        //     ).expect("Java func call failed");
-        // }
 
         /// Creates a new cryptographic key identified by `key_id`.
         ///
@@ -135,38 +130,22 @@ pub mod jni {
         ///
         /// # Arguments
         /// `key_id` - String that uniquely identifies the key so that it can be retrieved later
-        pub fn create_key(environment: &JNIEnv, key_id: String) -> Result<bool, Error> {
-            let result = environment.call_static_method(
-                "com/example/vulcans_limes/RustDef",
-                "create_key",
-                "(Ljava/lang/String;)Z",
-                &[JValue::from(environment.new_string(key_id).unwrap())],
-            );
-            return match result {
-                Ok(o) => Ok(o.z().unwrap()),
-                Err(e) => Err(e),
-            };
-        }
+        pub extern "java" fn create_key(
+            &self,
+            environment: &JNIEnv,
+            key_id: String,
+        ) -> JniResult<bool> {}
 
         /// Loads an existing cryptographic key identified by `key_id`.
-        ///
-        /// This method generates a new cryptographic key within the TPM.
         ///  The loaded key is associated with the provided `key_id`.
         ///
         /// # Arguments
         /// `key_id` - String that uniquely identifies the key so that it can be retrieved later
-        pub fn load_key(environment: &JNIEnv, key_id: String) -> Result<(), Error> {
-            let result = environment.call_static_method(
-                "com/example/vulcans_limes/RustDef",
-                "create_key",
-                "(Ljava/lang/String;)V",
-                &[JValue::from(environment.new_string(key_id).unwrap())],
-            );
-            return match result {
-                Ok(..) => Ok(()),
-                Err(e) => Err(e),
-            };
-        }
+        pub extern "java" fn load_key(
+            &self,
+            environment: &JNIEnv,
+            key_id: String,
+        ) -> JniResult<()> {}
 
         /// Initializes the TPM module and returns a handle for further operations.
         ///
@@ -291,8 +270,73 @@ pub mod jni {
 
         //------------------------------------------------------------------------------------------
         // Utility Functions that are only used by other Rust functions.
-        // These functions have no relation to RustDef.java
+        // These functions have no counterpart in RustDef.java
 
+        /// Retrieves a Rust object representing an Object of the Java class "RustDef".
+        /// This in necessary to call any of the Java-methods trough the JNI since those methods are
+        /// not static methods.
+        /// # Arguments
+        /// * `environment` - A reference to the Java environment (JNIEnv)
+        ///                   where the operation is performed.
+        /// # Returns
+        /// * `Result<RustDef, String>` - A Result type containing either
+        ///     - the RustDef object representing the Java class "RustDef" or
+        ///     - a String describing the error that occurred.
+        /// # Errors
+        /// This method may return an error if:
+        /// * The Java class "RustDef" cannot be found.
+        /// * An exception is raised in the Java environment during the operation.
+        /// # Panics
+        /// This method may panic if:
+        /// * An exception is raised in the Java environment,
+        ///   but describing or clearing the exception fails.
+        /// # Example
+        ///             let obj = Self::get_obj(&environment)?;
+        ///             let result = obj.callback(&environment);
+        pub fn get_obj(environment: &&'borrow JNIEnv<'env>)
+                       -> Result<crate::jni::RustDef<'env, 'borrow>, String> {
+            let classResult = environment.find_class(
+                "com/example/vulcans_limes/RustDef");
+            let class;
+            match classResult {
+                Ok(c) => { class = c }
+                Err(_) => { return Err(String::from("Class find failed")) }
+            }
+            let thisResult = environment.new_object(class, "()V", &[]);
+            let this;
+            match thisResult {
+                Ok(t) => { this = t }
+                Err(_) => {
+                    return Err(String::from(
+                        "Constructor call failed, could not create Object"))
+                }
+            }
+            let obj = RustDef { raw: AutoLocal::new(&environment, this) };
+            Ok(obj)
+        }
+
+        /// Checks for any pending Java exceptions in the provided Java environment (`JNIEnv`).
+        /// If one is detected, it is printed to console and cleared so the program doesn't crash.
+        /// # Arguments
+        /// * `environment` - A reference to the Java environment (`JNIEnv`)
+        /// # Returns
+        /// * `Result<(), JniError>` - A Result type representing either success (if no exceptions
+        ///                            are found) or an error of type `JniError`
+        ///                            (if exceptions are found).
+        /// # Errors
+        /// This method may return an error of type `JniError` if:
+        /// * Any pending Java exceptions are found in the provided Java environment.
+        /// # Panics
+        /// This method does not panic under normal circumstances.
+        pub fn check_java_exceptions(environment: &JNIEnv) -> Result<(), JniError> {
+            if environment.exception_check().unwrap_or(true) {
+                let _ = environment.exception_describe();
+                let _ = environment.exception_clear();
+                return Err(JniError::InvalidArguments);
+            } else {
+                Ok(())
+            }
+        }
 
         /// Interprets the result of a JNI method call that returns a byte[],
         /// converting a `Result<JValue, Error>`into a `Result<Vec<u8>, Error>`.

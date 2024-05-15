@@ -182,7 +182,7 @@ public class MainActivity extends AppCompatActivity {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
                         String keyId = input.getText().toString();
-                        boolean generatedSuccess = cryptoManager.genKey(keyId);
+                        boolean generatedSuccess = RustDef.demoCreate(keyId);
                         if(generatedSuccess){
                             //showKeyInfo only for Testing and Demo!
                             cryptoManager.showKeyInfo();

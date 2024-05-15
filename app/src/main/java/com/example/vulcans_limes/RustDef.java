@@ -90,7 +90,8 @@ class RustDef {
      * and associated with the provided `key_id`.
      * @param key_id - String that uniquely identifies the key so that it can be retrieved later
      */
-    static boolean create_key(String key_id) {
+    public boolean createKey(String key_id) {
+        System.out.println("Called create_key");
         return cryptoManager.genKey(key_id);
     }
 

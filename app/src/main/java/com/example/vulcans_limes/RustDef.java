@@ -10,6 +10,8 @@ import java.security.NoSuchProviderException;
 import java.security.SignatureException;
 import java.security.UnrecoverableKeyException;
 import java.security.cert.CertificateException;
+import java.lang.reflect.Array;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
 
@@ -48,13 +50,13 @@ class RustDef {
      */
     static CryptoManager cryptoManager;
 
-    //----------------------------------------------------------------------------------------------
-    //Rust methods that can be called from Java
-
     static {
         // This call loads the dynamic library containing the Rust code.
         System.loadLibrary("vulcanslimes");
     }
+
+    //----------------------------------------------------------------------------------------------
+    //Rust methods that can be called from Java
 
     /**
      * Proof of concept - shows type conversion
@@ -66,7 +68,7 @@ class RustDef {
      * Proof of concept method - shows callback from Rust to a java method
      * ONLY USE FOR TESTING
      */
-    static native void callRust();
+    static native String callRust();
 
     /**
      * Is called to start all demo method calls from the Rust side
@@ -78,10 +80,10 @@ class RustDef {
 
     static native byte[] demoSign(byte[] data);
 
+    static native boolean demoVerify(byte[] data);
+
     //----------------------------------------------------------------------------------------------
     //Java methods that can be called from Rust
-
-    static native boolean demoVerify(byte[] data);
 
     /*
      Proof of concept method - get called from Rust when callRust() gets called
@@ -161,15 +163,14 @@ class RustDef {
         return cryptoManager.verifySignature(data, signature);
     }
 
-
     /**
      * Encrypts the given data using the key managed by the TPM
      *
      * @param data - a byte array representing the data to be encrypted
      * @return - an ArrayList\<Byte\> containing the encrypted data
      */
-    static ArrayList<Byte> encrypt_data(byte[] data) throws Exception {
-        return new ArrayList<>(Arrays.asList(cryptoManager.toByte(cryptoManager.encryptData(data))));
+    static byte[] encrypt_data(byte[] data) throws Exception {
+        return cryptoManager.encryptData(data);
     }
 
     /**
@@ -178,8 +179,8 @@ class RustDef {
      * @param encrypted_data - a byte array representing the data to be decrypted
      * @return - an ArrayList\<Byte\> containing the encrypted data
      */
-    static ArrayList<Byte> decrypt_data(byte[] encrypted_data) throws Exception {
-        return new ArrayList<>(Arrays.asList(cryptoManager.toByte(cryptoManager.decryptData(encrypted_data))));
+    static byte[] decrypt_data(byte[] encrypted_data) throws Exception {
+        return cryptoManager.decryptData(encrypted_data);
     }
 
     //TODO: HASHING, WHAT RETURN VALUE??

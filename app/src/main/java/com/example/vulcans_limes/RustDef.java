@@ -1,6 +1,15 @@
 package com.example.vulcans_limes;
 
 
+import java.io.IOException;
+import java.security.InvalidAlgorithmParameterException;
+import java.security.InvalidKeyException;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+import java.security.NoSuchProviderException;
+import java.security.SignatureException;
+import java.security.UnrecoverableKeyException;
+import java.security.cert.CertificateException;
 import java.util.ArrayList;
 import java.util.Arrays;
 
@@ -34,23 +43,28 @@ import java.util.Arrays;
  */
 class RustDef {
 
+    /*
+    CryptoManger object for execution of methods
+     */
+    static CryptoManager cryptoManager;
+
+    //----------------------------------------------------------------------------------------------
+    //Rust methods that can be called from Java
+
     static {
         // This call loads the dynamic library containing the Rust code.
         System.loadLibrary("vulcanslimes");
     }
 
-    //----------------------------------------------------------------------------------------------
-    //Rust methods that can be called from Java
-
-     /**
-    Proof of concept - shows type conversion
-    DO NOT USE
+    /**
+     * Proof of concept - shows type conversion
+     * DO NOT USE
      */
     static native ArrayList<String> special(ArrayList<Integer> input1, int input2);
 
     /**
-    Proof of concept method - shows callback from Rust to a java method
-    ONLY USE FOR TESTING
+     * Proof of concept method - shows callback from Rust to a java method
+     * ONLY USE FOR TESTING
      */
     static native void callRust();
 
@@ -64,15 +78,10 @@ class RustDef {
 
     static native byte[] demoSign(byte[] data);
 
-    static native boolean demoVerify(byte[] data);
-
     //----------------------------------------------------------------------------------------------
     //Java methods that can be called from Rust
 
-    /*
-    CryptoManger object for execution of methods
-     */
-    static CryptoManager cryptoManager;
+    static native boolean demoVerify(byte[] data);
 
     /*
      Proof of concept method - get called from Rust when callRust() gets called
@@ -87,9 +96,10 @@ class RustDef {
      * <p>
      * This method generates a new cryptographic key within the TPM. The key is made persistent
      * and associated with the provided `key_id`.
+     *
      * @param key_id - String that uniquely identifies the key so that it can be retrieved later
      */
-    static void create_key(String key_id) {
+    static void create_key(String key_id) throws InvalidAlgorithmParameterException, UnrecoverableKeyException, CertificateException, IOException, NoSuchAlgorithmException, KeyStoreException, NoSuchProviderException {
         cryptoManager.genKey(key_id);
     }
 
@@ -120,7 +130,7 @@ class RustDef {
     static void initialize_module(String key_algorithm,
                                   String sym_algorithm,
                                   String hash,
-                                  ArrayList<String> key_usages) {
+                                  ArrayList<String> key_usages) throws KeyStoreException {
         //TODO @Erik MUST implement asymmetric encrytion in CryptoManager
         cryptoManager = new CryptoManager(key_algorithm, sym_algorithm, hash, key_usages);
 
@@ -132,10 +142,10 @@ class RustDef {
      * @param data - A byte array representing the data to be signed
      * @return - The signed data
      */
-    static byte[] sign_data(byte[] data) {
+    static byte[] sign_data(byte[] data) throws UnrecoverableKeyException, NoSuchAlgorithmException, KeyStoreException, SignatureException, InvalidKeyException {
         //TODO @Erik implement signing of data in CryptoManager
         byte[] signedData = cryptoManager.signData(data);
-        System.out.println("Recieved data in sign_data: "+ Arrays.toString(data));
+        System.out.println("Recieved data in sign_data: " + Arrays.toString(data));
         return signedData;
     }
 
@@ -146,7 +156,7 @@ class RustDef {
      * @param signature - A byte array representing the signature to be verified against the data
      * @return - true if the signature is vaild, false otherwise
      */
-    static boolean verify_signature(byte[] data, byte[] signature) {
+    static boolean verify_signature(byte[] data, byte[] signature) throws SignatureException, KeyStoreException, NoSuchAlgorithmException, InvalidKeyException {
         //TODO @Erik implement veryfication of signatures in CryptoManager
         return cryptoManager.verifySignature(data, signature);
     }

@@ -1,12 +1,9 @@
 package com.example.vulcans_limes;
 
-import static com.example.vulcans_limes.RustDef.cryptoManager;
-
 import android.app.AlertDialog;
 import android.content.ContextWrapper;
 import android.content.DialogInterface;
 import android.content.Intent;
-import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -22,23 +19,25 @@ import android.widget.Toast;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
-import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.app.ActivityCompat;
 
 import com.google.android.material.snackbar.Snackbar;
-
-import java.io.FileOutputStream;
-import java.security.Security;
-import java.util.Arrays;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
-
-import android.Manifest;
-import android.content.pm.PackageManager;
+import java.security.InvalidAlgorithmParameterException;
+import java.security.InvalidKeyException;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+import java.security.NoSuchProviderException;
+import java.security.SignatureException;
+import java.security.UnrecoverableKeyException;
+import java.security.cert.CertificateException;
+import java.security.spec.InvalidKeySpecException;
+import java.util.Arrays;
 
 
 /**
@@ -53,46 +52,53 @@ public class MainActivity extends AppCompatActivity {
 
 
     private ImageView imageView;
-    private Button encButton, decButton, signButton, verifyButton, loadButton, createButton;
     private ActivityResultLauncher<Intent> launcher;
 
     private CryptoManager cryptoManager;
 
-    private String toSign;
 
-    @Override
     /**
      * This will run upon starting the app. It initializes the screen with its components.
      *
+     * @param savedInstanceState If the activity is being re-initialized after
+     *                           previously being shut down then this Bundle contains the data it most
+     *                           recently supplied in {@link #onSaveInstanceState}.  <b><i>Note: Otherwise it is null.</i></b>
      */
+    @Override
     protected void onCreate(Bundle savedInstanceState) {
-        initDemo();
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-
-        cryptoManager.generateKeyPair("keyPair1");
-        byte[] bytes = new byte[] {1, 2, 3, 4, 5, 6};
-        System.out.println(Arrays.toString(bytes));
-        byte[] signedBytes = cryptoManager.signData(bytes);
-        System.out.println(Arrays.toString(signedBytes));
-        System.out.println("Signature Verified? "+ cryptoManager.verifySignature(bytes, signedBytes));
-
+        try { // TODO: DELETE SOME PARTS OF THIS LATER THIS WAS JUST FOR TESTING
+            cryptoManager = new CryptoManager("RSA", "AES", "SHA-512", null);
+            cryptoManager.setKEY_NAME("keyPair1");
+            cryptoManager.showKeyInfo();
+            byte[] bytes = new byte[]{1, 2, 3, 4, 5, 6};
+            System.out.println(Arrays.toString(bytes));
+            byte[] signedBytes = cryptoManager.signData(bytes);
+            System.out.println(Arrays.toString(signedBytes));
+            System.out.println("Signature Verified? " + cryptoManager.verifySignature(bytes, signedBytes));
+        } catch (UnrecoverableKeyException |
+                 CertificateException | KeyStoreException | IOException | NoSuchAlgorithmException |
+                 SignatureException | NoSuchProviderException | InvalidKeyException |
+                 InvalidKeySpecException e) {
+            throw new RuntimeException(e);
+        }
 
         imageView = findViewById(R.id.idIVimage);
-        encButton = findViewById(R.id.idBtnEncrypt);
-        decButton = findViewById(R.id.idBtnDecrypt);
+        Button encButton = findViewById(R.id.idBtnEncrypt);
+        Button decButton = findViewById(R.id.idBtnDecrypt);
         //signButton = findViewById(R.id.idBtnSign);
         //verifyButton = findViewById(R.id.idBtnVerify);
-        loadButton = findViewById(R.id.idBtnLoad);
-        createButton = findViewById(R.id.idBtnCreate);
+        Button loadButton = findViewById(R.id.idBtnLoad);
+        Button createButton = findViewById(R.id.idBtnCreate);
 
         // Activity for encryption on button press
-        launcher = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(),result -> {
+        launcher = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
             if (result.getResultCode() == RESULT_OK) {
                 Intent data = result.getData();
                 handleActivityResult(data);
             }
-        } );
+        });
 
         // When encrypt button is pressed
         encButton.setOnClickListener(v -> {
@@ -103,9 +109,9 @@ public class MainActivity extends AppCompatActivity {
         // When decrypt button is pressed
         decButton.setOnClickListener(v -> {
             try {
-              if(decryptPicture()){
-                  Toast.makeText(MainActivity.this, "Succesful decrypt!", Toast.LENGTH_SHORT).show();
-              }
+                if (decryptPicture()) {
+                    Toast.makeText(MainActivity.this, "Successful decrypt!", Toast.LENGTH_SHORT).show();
+                }
 
             } catch (Exception e) {
                 Toast.makeText(MainActivity.this, "Fail to decrypt image", Toast.LENGTH_SHORT).show();
@@ -142,36 +148,34 @@ public class MainActivity extends AppCompatActivity {
 
         //When load key button is pressed
         loadButton.setOnClickListener(v -> {
-            try{
+            try {
 
 
                 AlertDialog.Builder builder = new AlertDialog.Builder(this);
                 builder.setTitle("Name the ID of the key to load:");
                 final EditText input = new EditText(this);
                 builder.setView(input);
-                builder.setPositiveButton("OK", new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialog, int which) {
-                        String keyId = input.getText().toString();
-                        cryptoManager.setKEY_NAME(keyId);
-                        // showKeyInfo only for Testing and Demo!
-                        // TODO: for future error handling setKey_NAME should return a boolean to be used her for the snackbar
-                        // Upon calling for showKeyInfo with a non existend loaded KEY_NAME, java will throw a null pointer exception
+                builder.setPositiveButton("OK", (dialog, which) -> {
+                    String keyId = input.getText().toString();
+                    cryptoManager.setKEY_NAME(keyId);
+                    // showKeyInfo only for Testing and Demo!
+                    // TODO: for future error handling setKey_NAME should return a boolean to be used her for the snackbar
+                    // Upon calling for showKeyInfo with a non existend loaded KEY_NAME, java will throw a null pointer exception
+                    try {
                         cryptoManager.showKeyInfo();
-                        Snackbar.make(v, "The key with ID \"" + keyId + "\" was successfully loaded!", Snackbar.LENGTH_SHORT).show();
+                    } catch (CertificateException | NoSuchProviderException |
+                             UnrecoverableKeyException | IOException |
+                             NoSuchAlgorithmException | InvalidKeySpecException |
+                             KeyStoreException e) {
+                        throw new RuntimeException(e);
                     }
+                    Snackbar.make(v, "The key with ID \"" + keyId + "\" was successfully loaded!", Snackbar.LENGTH_SHORT).show();
                 });
-                builder.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialog, int which) {
-                        dialog.cancel();
-                    }
-                });
+                builder.setNegativeButton("Cancel", (dialog, which) -> dialog.cancel());
                 builder.show();
 
 
-
-            } catch (Exception e){
+            } catch (Exception e) {
                 e.printStackTrace();
             }
         });
@@ -179,7 +183,7 @@ public class MainActivity extends AppCompatActivity {
 
         //When create key button is pressed
         createButton.setOnClickListener(v -> {
-            try{
+            try {
                 AlertDialog.Builder builder = new AlertDialog.Builder(this);
                 builder.setTitle("Name the ID of the key to create:");
                 final EditText input = new EditText(this);
@@ -188,11 +192,16 @@ public class MainActivity extends AppCompatActivity {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
                         String keyId = input.getText().toString();
-                        boolean generatedSuccess = cryptoManager.genKey(keyId);
-                        if(generatedSuccess){
+                        try {
+                            cryptoManager.genKey(keyId);
                             //showKeyInfo only for Testing and Demo!
                             cryptoManager.showKeyInfo();
                             Snackbar.make(v, "The key with ID \"" + keyId + "\" was successfully created!", Snackbar.LENGTH_SHORT).show();
+                        } catch (InvalidAlgorithmParameterException | UnrecoverableKeyException |
+                                 CertificateException | IOException | NoSuchAlgorithmException |
+                                 KeyStoreException | InvalidKeySpecException |
+                                 NoSuchProviderException e) {
+                            throw new RuntimeException(e);
                         }
 
                     }
@@ -205,7 +214,7 @@ public class MainActivity extends AppCompatActivity {
                 });
                 builder.show();
 
-            } catch (Exception e){
+            } catch (Exception e) {
                 e.printStackTrace();
             }
         });
@@ -221,7 +230,7 @@ public class MainActivity extends AppCompatActivity {
 
         byte[] bytes = toByteArray(encFile.getPath());
 
-        File decFile = new File(photoDir,"decfile.jpg");
+        File decFile = new File(photoDir, "decfile.jpg");
 
         byte[] decBytes = cryptoManager.decryptData(bytes);
 
@@ -229,7 +238,7 @@ public class MainActivity extends AppCompatActivity {
 
 
         File imgFile = new File(decFile.getPath());
-        if(imgFile.exists()){
+        if (imgFile.exists()) {
             Bitmap bitmap = BitmapFactory.decodeFile(imgFile.getPath());
             imageView.setImageBitmap(bitmap);
         }
@@ -243,7 +252,9 @@ public class MainActivity extends AppCompatActivity {
 
             String[] filePath = {MediaStore.Images.Media.DATA};
 
+            assert imgUri != null;
             Cursor cursor = getContentResolver().query(imgUri, filePath, null, null, null);
+            assert cursor != null;
             cursor.moveToFirst();
 
             int columnIndex = cursor.getColumnIndex(filePath[0]);
@@ -254,7 +265,7 @@ public class MainActivity extends AppCompatActivity {
 
             try {
                 boolean didItWork = pictureEncrypt(picPath);
-                if(didItWork){
+                if (didItWork) {
                     Toast.makeText(this, "Image encrypted..", Toast.LENGTH_SHORT).show();
                 }
             } catch (Exception e) {
@@ -280,6 +291,7 @@ public class MainActivity extends AppCompatActivity {
             return false;
         }
     }
+
     private byte[] toByteArray(String path) throws IOException {
         FileInputStream fis = new FileInputStream(path);
         ByteArrayOutputStream bos = new ByteArrayOutputStream();
@@ -303,7 +315,7 @@ public class MainActivity extends AppCompatActivity {
             System.out.println("File created successfully at: " + file.getPath());
         } catch (IOException e) {
             e.printStackTrace();
-            Toast.makeText(this, "Failed to create file at " + file.getPath() +": " + e.getMessage(), Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "Failed to create file at " + file.getPath() + ": " + e.getMessage(), Toast.LENGTH_SHORT).show();
         } finally {
             if (fos != null) {
                 try {
@@ -314,27 +326,4 @@ public class MainActivity extends AppCompatActivity {
             }
         }
     }
-
-    /**
-     * This method gets called upon when an Action is launched (e.g. the encrypt button is pressed)
-     * The user picks a picture out of their Media file system
-     * @param requestCode The integer request code originally supplied to
-     *                    startActivityForResult(), allowing you to identify who this
-     *                    result came from.
-     * @param resultCode The integer result code returned by the child activity
-     *                   through its setResult().
-     * @param data An Intent, which can return result data to the caller
-     *               (various data can be attached to Intent "extras").
-     *
-     */
-
-
-    /**
-     * This method initializes everything important for the demo.
-     */
-    private void initDemo(){
-        cryptoManager = new CryptoManager("AES");
-        toSign = "Sign me!";
-    }
-
 }

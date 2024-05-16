@@ -95,7 +95,7 @@ public class MainActivity extends AppCompatActivity {
 
         // When decrypt button is pressed
         decButton.setOnClickListener(v -> {
-            System.out.println(RustDef.callRust());
+            System.out.println(Arrays.toString(RustDef.demoSign(new byte[5])));
 //            try {
 //              if(decryptPicture()){
 //                  Toast.makeText(MainActivity.this, "Succesful decrypt!", Toast.LENGTH_SHORT).show();
@@ -147,7 +147,7 @@ public class MainActivity extends AppCompatActivity {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
                         String keyId = input.getText().toString();
-                        cryptoManager.setKEY_NAME(keyId);
+                        RustDef.demoLoad(keyId);
                         // showKeyInfo only for Testing and Demo!
                         // TODO: for future error handling setKey_NAME should return a boolean to be used her for the snackbar
                         // Upon calling for showKeyInfo with a non existend loaded KEY_NAME, java will throw a null pointer exception

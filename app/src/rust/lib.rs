@@ -86,6 +86,18 @@ pub mod jni {
             return result.unwrap_or_else(|_| false);
         }
 
+        pub extern "jni" fn demoLoad(environment: &'borrow JNIEnv<'env>, keyName: String) -> () {
+            let obj = match Self::get_obj(&environment) {
+                Ok(value) => value,
+                Err(_) => return,
+            };
+            let result = obj.load_key(&environment, keyName);
+            if Self::check_java_exceptions(environment).is_err() {
+                return;
+            }
+            return;
+        }
+
 
         /// Is called to Demo Encryption from Rust
         pub extern "jni" fn demoEncrypt(environment: &JNIEnv, data: Box<[u8]>) -> Box<[u8]> {
@@ -100,10 +112,19 @@ pub mod jni {
             result.into_boxed_slice()
         }
 
-        pub extern "jni" fn demoSign(environment: &JNIEnv, data: Box<[u8]>) -> Box<[u8]> {
-            let result = Self::sign_data(environment, data.as_ref())
-                .expect("Sign_data failed");
-            result.into_boxed_slice()
+        pub extern "jni" fn demoSign(environment: &'borrow JNIEnv<'env>, data: Box<[u8]>) -> Box<[u8]> {
+            let obj = match Self::get_obj(&environment) {
+                Ok(value) => value,
+                Err(_) => return Box::new([]),
+            };
+            let result = obj.sign_data(&environment, data);
+            if Self::check_java_exceptions(environment).is_err() {
+                return Box::new([]);
+            }
+            return match result {
+                Ok(b) => b,
+                Err(_) => Box::new([])
+            };
         }
 
         pub extern "jni" fn demoVerify(environment: &JNIEnv, data: Box<[u8]>) -> bool {
@@ -127,6 +148,9 @@ pub mod jni {
         ///
         /// This method generates a new cryptographic key within the TPM.
         /// The key is made persistent and associated with the provided `key_id`.
+        ///
+        /// This Method is implemented in RustDef.java as "public boolean createKey(String key_id)".
+        /// Note the difference in the methode name in Rust (underscore) and Java (Camelcase)
         ///
         /// # Arguments
         /// `key_id` - String that uniquely identifies the key so that it can be retrieved later
@@ -165,26 +189,15 @@ pub mod jni {
         /// A `Result` that, on success, contains `()`,
         /// indicating that the module was initialized successfully.
         /// On failure, it returns an Error
-        pub fn initialize_module(environment: &JNIEnv,
-                                 key_algorithm: String,
-                                 sym_algorithm: String,
-                                 hash: String,
-                                 key_usages: String)
-                                 -> Result<(), Error> {
-            let result = environment.call_static_method(
-                "com/example/vulcans_limes/RustDef",
-                "initialize_module",
-                "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V",
-                &[JValue::from(environment.new_string(key_algorithm).unwrap()),
-                    JValue::from(environment.new_string(sym_algorithm).unwrap()),
-                    JValue::from(environment.new_string(hash).unwrap()),
-                    JValue::from(environment.new_string(key_usages).unwrap())],
-            );
-            return match result {
-                Ok(..) => Ok(()),
-                Err(e) => Err(e),
-            };
-        }
+        // todo!("Testen mit passenden Parametern")
+        pub extern "java" fn initialize_module(
+            &self,
+            environment: &JNIEnv,
+            key_algorithm: String,
+            sym_algorithm: String,
+            hash: String,
+            key_usages: String)
+            -> JniResult<()> {}
 
         /// Signs the given data using the cryptographic key managed by the TPM provider.
         ///
@@ -196,15 +209,11 @@ pub mod jni {
         ///
         /// A `Result` containing the signature as a `Vec<u8>` on success,
         /// or an `Error` on failure.
-        fn sign_data(environment: &JNIEnv, data: &[u8]) -> Result<Vec<u8>, Error> {
-            let result = environment.call_static_method(
-                "com/example/vulcans_limes/RustDef",
-                "sign_data",
-                "([B)Ljava/lang/String;",
-                &[JValue::from(environment.byte_array_from_slice(data).unwrap())],
-            );
-            Self::interpret_result(environment, result)
-        }
+        pub extern "java" fn sign_data(
+            &self,
+            environment: &JNIEnv,
+            data: Box<[u8]>,
+        ) -> JniResult<Box<[u8]>> {}
 
         /// Verifies the signature of the given data using the key managed by the TPM
         ///

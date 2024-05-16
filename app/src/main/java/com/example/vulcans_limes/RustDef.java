@@ -5,6 +5,8 @@ import java.lang.reflect.Array;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 /**
  * This class provides the method declarations that are the interface for the JNI.
@@ -59,6 +61,9 @@ class RustDef {
 
     static native boolean demoCreate(String keyName);
 
+    static native void demoLoad(String keyName);
+
+
     static native byte[] demoEncrypt(byte[] data);
 
     static native byte[] demoDecrypt(byte[] data);
@@ -103,8 +108,8 @@ class RustDef {
      *
      * @param key_id - String that uniquely identifies the key so that it can be retrieved later
      */
-    static void load_key(String key_id) {
-//        cryptoManager.setKEY_NAME(key_id);
+    public void loadKey(String key_id) {
+        cryptoManager.setKEY_NAME(key_id);
     }
 
     /**
@@ -119,7 +124,7 @@ class RustDef {
      * @param key_usages    - A vector of `AppKeyUsage` values specifying
      *                      the intended usages for the key
      */
-    static void initialize_module(String key_algorithm,
+    public void initializeModule(String key_algorithm,
                                   String sym_algorithm,
                                   String hash,
                                   ArrayList<String> key_usages) {
@@ -133,11 +138,15 @@ class RustDef {
      * @param data - A byte array representing the data to be signed
      * @return - The signed data
      */
-    static String sign_data(byte[] data) {
+    public byte[] signData(byte[] data) {
         //TODO @Erik implement signing of data in CryptoManager
-        byte[] signedData = cryptoManager.signData(data);
-        System.out.println("Recieved data in sign_data: "+ Arrays.toString(data));
-        return byteToString(signedData);
+        System.out.println("Received data in sign_data: "+ Arrays.toString(data));
+        data[0] = (byte) 42;
+        return data;
+//        return (ArrayList<>) IntStream.range(0, data.length)
+//                .mapToObj(i -> data[i])
+//                .collect(Collectors.toList());
+//        return cryptoManager.signData(data);
     }
 
 

@@ -8,6 +8,7 @@ pub mod jni {
     use robusta_jni::jni::errors::Error;
     use robusta_jni::jni::JNIEnv;
     use robusta_jni::jni::objects::{AutoLocal, JString, JValue};
+    use robusta_jni::jni::sys::jbyteArray;
 
     #[derive(Signature, TryIntoJavaValue, IntoJavaValue, TryFromJavaValue)]
     #[package(com.example.vulcans_1limes)]
@@ -81,7 +82,11 @@ pub mod jni {
         }
 
         pub extern "jni" fn demoVerify(environment: &JNIEnv, data: Box<[u8]>) -> bool {
-            todo!()
+            let result = Self::verify_signature(environment, data.as_ref(), data.as_ref());
+            return match result {
+                Ok(value) => { value }
+                Err(_) => { false }
+            };
         }
 
 
@@ -190,14 +195,19 @@ pub mod jni {
         ///
         /// A `Result` containing the signature as a `Vec<u8>` on success,
         /// or an `Error` on failure.
-        fn sign_data(environment: &JNIEnv, data: &[u8]) -> Result<Vec<u8>, Error> {
+        fn sign_data(environment: &JNIEnv, data: &[u8]) -> Result<Vec<u8>, String> {
             let result = environment.call_static_method(
                 "com/example/vulcans_limes/RustDef",
                 "sign_data",
-                "([B)Ljava/lang/String;",
+                "([B)[B",
                 &[JValue::from(environment.byte_array_from_slice(data).unwrap())],
             );
-            Self::interpret_result(environment, result)
+            let output;
+            match result {
+                Ok(r) => { output = r; }
+                Err(_) => { return Err(String::from("Couldn't call sign_data in RustDef.java")); }
+            }
+            Self::convert_to_Vec_u8(environment, output)
         }
 
         /// Verifies the signature of the given data using the key managed by the TPM
@@ -211,7 +221,7 @@ pub mod jni {
         ///
         /// A `Result` containing a `bool` signifying whether the signature is valid,
         /// or an `Error` on failure to determine the validity.
-        fn verify_signature(environment: &JNIEnv, data: &[u8], signature: &[u8]) -> Result<bool, Error> {
+        fn verify_signature(environment: &JNIEnv, data: &[u8], signature: &[u8]) -> Result<bool, String> {
             let result = environment.call_static_method(
                 "com/example/vulcans_limes/RustDef",
                 "verify_signature",
@@ -219,7 +229,15 @@ pub mod jni {
                 &[JValue::from(environment.byte_array_from_slice(data).unwrap()),
                     JValue::from(environment.byte_array_from_slice(signature).unwrap())],
             );
-            result.unwrap().z()
+            return match result {
+                Ok(res) => {
+                    match res.z() {
+                        Ok(value) => { Ok(value) }
+                        Err(_) => { Err(String::from("Failed to extract return value (bool) from Java call")) }
+                    }
+                }
+                Err(_) => { Err(String::from("Java call verify_signature failed")) }
+            };
         }
 
         /// Encrypts the given data using the key managed by the TPM
@@ -232,15 +250,21 @@ pub mod jni {
         ///
         /// A `Result` containing the encrypted data as a `Vec<u8>` on success,
         /// or an `Error` on failure.
-        fn encrypt_data(environment: &JNIEnv, data: &[u8]) -> Result<Vec<u8>, Error> {
+        fn encrypt_data(environment: &JNIEnv, data: &[u8]) -> Result<Vec<u8>, String> {
             let result = environment.call_static_method(
                 "com/example/vulcans_limes/RustDef",
                 "encrypt_data",
-                "([B)Ljava/lang/String;",
+                "([B)[B",
                 &[JValue::from(environment.byte_array_from_slice(data).unwrap())],
             );
-            Self::interpret_result(environment, result)
+            let output;
+            match result {
+                Ok(r) => { output = r; }
+                Err(_) => { return Err(String::from("Couldn't call encrypt_data in RustDef.java")); }
+            }
+            Self::convert_to_Vec_u8(environment, result.unwrap())
         }
+
 
         /// Decrypts the given data using the key managed by the TPM
         ///
@@ -252,20 +276,64 @@ pub mod jni {
         ///
         /// A `Result` containing the Decrypted data as a `Vec<u8>` on success,
         /// or an `Error` on failure.
-        fn decrypt_data(environment: &JNIEnv, data: &[u8]) -> Result<Vec<u8>, Error> {
+        fn decrypt_data(environment: &JNIEnv, data: &[u8]) -> Result<Vec<u8>, String> {
             let result = environment.call_static_method(
                 "com/example/vulcans_limes/RustDef",
                 "decrypt_data",
-                "([B)Ljava/lang/String;",
+                "([B)[B",
                 &[JValue::from(environment.byte_array_from_slice(data).unwrap())],
             );
-            Self::interpret_result(environment, result)
+            let output;
+            match result {
+                Ok(r) => { output = r; }
+                Err(_) => { return Err(String::from("Couldn't call decrypt_data in RustDef.java")); }
+            }
+            Self::convert_to_Vec_u8(environment, result.unwrap())
         }
 
         //------------------------------------------------------------------------------------------
         // Utility Functions that are only used by other Rust functions.
         // These functions have no relation to RustDef.java
 
+        fn convert_to_Vec_u8(environment: &JNIEnv, result: JValue) -> Result<Vec<u8>, String> {
+            Self::check_java_exceptions(environment)?;
+            let output_array = result.l();
+            let jobj;
+            match output_array {
+                Ok(o) => { jobj = o; }
+                Err(_) => { return Err(String::from("Type conversion from JValue to JObject failed")); }
+            }
+            let jobj = jobj.into_inner() as jbyteArray;
+            let output_vec = environment.convert_byte_array(jobj);
+            Self::check_java_exceptions(environment)?;
+            match output_vec {
+                Ok(v) => { Ok(v) }
+                Err(_) => { Err(String::from("Conversion from jbyteArray to Vec<u8> failed")) }
+            }
+        }
+
+        /// Checks for any pending Java exceptions in the provided Java environment (`JNIEnv`).
+        /// If one is detected, it is printed to console and cleared so the program doesn't crash.
+        /// # Arguments
+        /// * `environment` - A reference to the Java environment (`JNIEnv`)
+        /// # Returns
+        /// * `Result<(), JniError>` - A Result type representing either success (if no exceptions
+        ///                            are found) or an error of type `JniError`
+        ///                            (if exceptions are found).
+        /// # Errors
+        /// This method may return an error of type `JniError` if:
+        /// * Any pending Java exceptions are found in the provided Java environment.
+        /// # Panics
+        /// This method does not panic under normal circumstances.
+        pub fn check_java_exceptions(environment: &JNIEnv) -> Result<(), String> {
+            if environment.exception_check().unwrap_or(true) {
+                let _ = environment.exception_describe();
+                let _ = environment.exception_clear();
+                return Err(String::from("A Java exception occurred, check console for details"));
+            } else {
+                Ok(())
+            }
+        }
 
         /// Interprets the result of a JNI method call that returns a byte[],
         /// converting a `Result<JValue, Error>`into a `Result<Vec<u8>, Error>`.

@@ -93,6 +93,7 @@ class RustDef {
      * @param key_id - String that uniquely identifies the key so that it can be retrieved later
      */
     static void create_key(String key_id) {
+        System.out.println(key_id);
 //        cryptoManager.genKey(key_id);
     }
 
@@ -135,7 +136,7 @@ class RustDef {
      * @param data - A byte array representing the data to be signed
      * @return - The signed data
      */
-    static String sign_data(byte[] data) {
+    static byte[] sign_data(byte[] data) {
         //TODO @Erik implement signing of data in CryptoManager
         //Just for testing, can be removed
         System.out.println("Recieved data in sign_data: " + Arrays.toString(data));
@@ -144,7 +145,7 @@ class RustDef {
         result[data.length] = (byte) 242;
 
 
-        return byteToString(result);
+        return result;
     }
 
 
@@ -157,6 +158,7 @@ class RustDef {
      */
     static boolean verify_signature(byte[] data, byte[] signature) {
         //TODO @Erik implement veryfication of signatures in CryptoManager
+        System.out.println(Arrays.toString(data));
         return false;
     }
 
@@ -166,7 +168,7 @@ class RustDef {
      * @param data - a byte array representing the data to be encrypted
      * @return - an ArrayList\<Byte\> containing the encrypted data
      */
-    static String encrypt_data(byte[] data) {
+    static byte[] encrypt_data(byte[] data) {
         //TODO change return type to String with byteToString call
 //        return new ArrayList<>(Arrays.asList(cryptoManager.toByte(cryptoManager.encryptData(data))));
         System.out.println("Recieved data in sign_data: " + Arrays.toString(data));
@@ -174,8 +176,7 @@ class RustDef {
         System.arraycopy(data, 0, result, 0, data.length);
         result[data.length] = (byte) 242;
 
-
-        return byteToString(result);
+        return result;
     }
 
     /**
@@ -184,10 +185,9 @@ class RustDef {
      * @param encrypted_data - a byte array representing the data to be decrypted
      * @return - an ArrayList\<Byte\> containing the encrypted data
      */
-    static String decrypt_data(byte[] encrypted_data) throws Exception {
-        //TODO change return type to String with byteToString call
+    static byte[] decrypt_data(byte[] encrypted_data) throws Exception {
 //        return new ArrayList<>(Arrays.asList(cryptoManager.toByte(cryptoManager.decryptData(encrypted_data))));
-        return null;
+        return encrypted_data;
     }
 
     //----------------------------------------------------------------------------------------------

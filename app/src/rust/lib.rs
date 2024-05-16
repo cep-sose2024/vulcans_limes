@@ -62,17 +62,36 @@ pub mod jni {
             String::from("Success")
         }
 
+        pub extern "jni" fn demoCreate(environment: &JNIEnv, key_id: String) -> () {
+            Self::create_key(environment, key_id).unwrap();
+            let _ = Self::check_java_exceptions(environment);
+        }
+
+        pub extern "jni" fn demoInit(environment: &JNIEnv,
+                                     key_algorithm: String,
+                                     sym_algorithm: String,
+                                     hash: String,
+                                     key_usages: String)
+                                     -> () {
+            let _ = Self::initialize_module(environment, key_algorithm, sym_algorithm, hash, key_usages);
+            let _ = Self::check_java_exceptions(environment);
+        }
+
         /// Is called to Demo Encryption from Rust
         pub extern "jni" fn demoEncrypt(environment: &JNIEnv, data: Box<[u8]>) -> Box<[u8]> {
             let result = Self::encrypt_data(environment, data.as_ref())
                 .expect("Sign_data failed");
+            let _ = Self::check_java_exceptions(environment);
             result.into_boxed_slice()
         }
 
         pub extern "jni" fn demoDecrypt(environment: &JNIEnv, data: Box<[u8]>) -> Box<[u8]> {
-            let result = Self::decrypt_data(environment, data.as_ref())
-                .expect("Sign_data failed");
-            result.into_boxed_slice()
+            let result = Self::decrypt_data(environment, data.as_ref());
+            let _ = Self::check_java_exceptions(environment);
+            return match result {
+                Ok(res) => { res.into_boxed_slice() }
+                Err(_) => { Vec::new().into_boxed_slice() }
+            }
         }
 
         pub extern "jni" fn demoSign(environment: &JNIEnv, data: Box<[u8]>) -> Box<[u8]> {

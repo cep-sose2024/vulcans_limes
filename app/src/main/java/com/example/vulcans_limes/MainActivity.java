@@ -28,16 +28,6 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.security.InvalidAlgorithmParameterException;
-import java.security.InvalidKeyException;
-import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
-import java.security.NoSuchProviderException;
-import java.security.SignatureException;
-import java.security.UnrecoverableKeyException;
-import java.security.cert.CertificateException;
-import java.security.spec.InvalidKeySpecException;
-import java.util.Arrays;
 
 
 /**
@@ -68,21 +58,8 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        try { // TODO: DELETE SOME PARTS OF THIS LATER THIS WAS JUST FOR TESTING
-            cryptoManager = new CryptoManager("RSA", "AES", "SHA-512", null);
-            cryptoManager.setKEY_NAME("keyPair1");
-            cryptoManager.showKeyInfo();
-            byte[] bytes = new byte[]{1, 2, 3, 4, 5, 6};
-            System.out.println(Arrays.toString(bytes));
-            byte[] signedBytes = cryptoManager.signData(bytes);
-            System.out.println(Arrays.toString(signedBytes));
-            System.out.println("Signature Verified? " + cryptoManager.verifySignature(bytes, signedBytes));
-        } catch (UnrecoverableKeyException |
-                 CertificateException | KeyStoreException | IOException | NoSuchAlgorithmException |
-                 SignatureException | NoSuchProviderException | InvalidKeyException |
-                 InvalidKeySpecException e) {
-            throw new RuntimeException(e);
-        }
+        RustDef.demoInit("RSA", "AES", "SHA-512", "");
+
 
         imageView = findViewById(R.id.idIVimage);
         Button encButton = findViewById(R.id.idBtnEncrypt);
@@ -157,18 +134,10 @@ public class MainActivity extends AppCompatActivity {
                 builder.setView(input);
                 builder.setPositiveButton("OK", (dialog, which) -> {
                     String keyId = input.getText().toString();
-                    cryptoManager.setKEY_NAME(keyId);
-                    // showKeyInfo only for Testing and Demo!
+                    RustDef.demoCreate(keyId);
                     // TODO: for future error handling setKey_NAME should return a boolean to be used her for the snackbar
                     // Upon calling for showKeyInfo with a non existend loaded KEY_NAME, java will throw a null pointer exception
-                    try {
-                        cryptoManager.showKeyInfo();
-                    } catch (CertificateException | NoSuchProviderException |
-                             UnrecoverableKeyException | IOException |
-                             NoSuchAlgorithmException | InvalidKeySpecException |
-                             KeyStoreException e) {
-                        throw new RuntimeException(e);
-                    }
+
                     Snackbar.make(v, "The key with ID \"" + keyId + "\" was successfully loaded!", Snackbar.LENGTH_SHORT).show();
                 });
                 builder.setNegativeButton("Cancel", (dialog, which) -> dialog.cancel());
@@ -192,18 +161,8 @@ public class MainActivity extends AppCompatActivity {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
                         String keyId = input.getText().toString();
-                        try {
-                            cryptoManager.genKey(keyId);
-                            //showKeyInfo only for Testing and Demo!
-                            cryptoManager.showKeyInfo();
-                            Snackbar.make(v, "The key with ID \"" + keyId + "\" was successfully created!", Snackbar.LENGTH_SHORT).show();
-                        } catch (InvalidAlgorithmParameterException | UnrecoverableKeyException |
-                                 CertificateException | IOException | NoSuchAlgorithmException |
-                                 KeyStoreException | InvalidKeySpecException |
-                                 NoSuchProviderException e) {
-                            throw new RuntimeException(e);
-                        }
-
+                        RustDef.demoCreate(keyId);
+                        Snackbar.make(v, "The key with ID \"" + keyId + "\" was successfully created!", Snackbar.LENGTH_SHORT).show();
                     }
                 });
                 builder.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
@@ -232,7 +191,7 @@ public class MainActivity extends AppCompatActivity {
 
         File decFile = new File(photoDir, "decfile.jpg");
 
-        byte[] decBytes = cryptoManager.decryptData(bytes);
+        byte[] decBytes = RustDef.demoDecrypt(bytes);
 
         createFileFromByteArray(decBytes, decFile);
 
@@ -280,7 +239,7 @@ public class MainActivity extends AppCompatActivity {
             ContextWrapper contextWrapper = new ContextWrapper(getApplication());
             File photoDir = contextWrapper.getExternalFilesDir(Environment.DIRECTORY_DCIM);
             File encFile = new File(photoDir, "encfile" + ".jpg");
-            byte[] encryptedData = cryptoManager.encryptData(toByteArray(path));
+            byte[] encryptedData = RustDef.demoEncrypt(toByteArray(path));
             createFileFromByteArray(encryptedData, encFile);
 
             return true;

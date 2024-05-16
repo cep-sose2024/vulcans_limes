@@ -10,8 +10,6 @@ import java.security.NoSuchProviderException;
 import java.security.SignatureException;
 import java.security.UnrecoverableKeyException;
 import java.security.cert.CertificateException;
-import java.lang.reflect.Array;
-import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
 
@@ -76,6 +74,14 @@ class RustDef {
      */
     static native byte[] demoEncrypt(byte[] data);
 
+    static native void demoCreate(String key_id);
+
+    static native void demoInit(String key_algorithm,
+                                String sym_algorithm,
+                                String hash,
+                                String key_usages);
+
+
     static native byte[] demoDecrypt(byte[] data);
 
     static native byte[] demoSign(byte[] data);
@@ -132,9 +138,10 @@ class RustDef {
     static void initialize_module(String key_algorithm,
                                   String sym_algorithm,
                                   String hash,
-                                  ArrayList<String> key_usages) throws KeyStoreException {
+                                  String key_usages) throws KeyStoreException {
         //TODO @Erik MUST implement asymmetric encrytion in CryptoManager
-        cryptoManager = new CryptoManager(key_algorithm, sym_algorithm, hash, key_usages);
+        ArrayList<String> usagesList = new ArrayList<>(Arrays.asList(key_usages.split(";")));
+        cryptoManager = new CryptoManager(key_algorithm, sym_algorithm, hash, usagesList);
 
     }
 
@@ -180,6 +187,7 @@ class RustDef {
      * @return - an ArrayList\<Byte\> containing the encrypted data
      */
     static byte[] decrypt_data(byte[] encrypted_data) throws Exception {
+        System.out.println("reached");
         return cryptoManager.decryptData(encrypted_data);
     }
 

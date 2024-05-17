@@ -52,10 +52,10 @@ public class MainActivity extends AppCompatActivity {
      */
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
         RustDef.demoInit();
 
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_main);
 
         imageView = findViewById(R.id.idIVimage);
         Button encButton = findViewById(R.id.idBtnEncrypt);
@@ -153,7 +153,7 @@ public class MainActivity extends AppCompatActivity {
                 builder.setView(input);
                 builder.setPositiveButton("OK", (dialog, which) -> {
                     String keyId = input.getText().toString();
-                    String keyGenInfo = "AES;256;CBC;PKCS#7";
+                    String keyGenInfo = "AES;256;CBC;PKCS7Padding";
                     RustDef.demoCreate(keyId, keyGenInfo);
                     Snackbar.make(v, "The key with ID \"" + keyId + "\" was successfully created!", Snackbar.LENGTH_SHORT).show();
                 });

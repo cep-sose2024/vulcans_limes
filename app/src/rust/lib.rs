@@ -55,25 +55,27 @@ pub mod jni {
 
         ///Proof of concept method - shows callback from Rust to a java method
         ///     ONLY USE FOR TESTING
-        pub extern "jni" fn callRust(environment: &JNIEnv) -> String {
-
-            //example usage of a java method call from rust
-            Self::create_key(environment, String::from("moin")).unwrap();
-            String::from("Success")
+        pub extern "jni" fn callRust(_environment: &JNIEnv) -> String {
+            return String::from("empty method")
         }
 
-        pub extern "jni" fn demoCreate(environment: &JNIEnv, key_id: String) -> () {
-            Self::create_key(environment, key_id).unwrap();
+        pub extern "jni" fn demoCreate(environment: &JNIEnv, key_id: String, key_gen_info: String) -> () {
+            Self::create_key(environment, key_id, key_gen_info).unwrap();
             let _ = Self::check_java_exceptions(environment);
         }
 
-        pub extern "jni" fn demoInit(environment: &JNIEnv,
-                                     key_algorithm: String,
-                                     sym_algorithm: String,
-                                     hash: String,
-                                     key_usages: String)
-                                     -> () {
-            let _ = Self::initialize_module(environment, key_algorithm, sym_algorithm, hash, key_usages);
+        pub extern "jni" fn demoInit(environment: &JNIEnv)
+                                     -> String {
+            let result = Self::initialize_module(environment);
+            let _ = Self::check_java_exceptions(environment);
+            return match result {
+                Ok(_) => {String::from("Success")}
+                Err(_) => {String::from("Fail")}
+            }
+        }
+
+        pub extern "jni" fn demoLoad(environment: &JNIEnv, key_id: String) -> () {
+            let _ = Self::load_key(environment, key_id);
             let _ = Self::check_java_exceptions(environment);
         }
 
@@ -132,13 +134,16 @@ pub mod jni {
         ///
         /// # Arguments
         /// `key_id` - String that uniquely identifies the key so that it can be retrieved later
-        pub fn create_key(environment: &JNIEnv, key_id: String) -> Result<(), Error> {
+        pub fn create_key(environment: &JNIEnv, key_id: String, key_gen_info: String)
+            -> Result<(), Error> {
             let result = environment.call_static_method(
                 "com/example/vulcans_limes/RustDef",
                 "create_key",
-                "(Ljava/lang/String;)V",
-                &[JValue::from(environment.new_string(key_id).unwrap())],
+                "(Ljava/lang/String;Ljava/lang/String;)V",
+                &[JValue::from(environment.new_string(key_id).unwrap()),
+                       JValue::from(environment.new_string(key_gen_info).unwrap())],
             );
+            let _ = Self::check_java_exceptions(environment);
             return match result {
                 Ok(..) => Ok(()),
                 Err(e) => Err(e),
@@ -155,7 +160,7 @@ pub mod jni {
         pub fn load_key(environment: &JNIEnv, key_id: String) -> Result<(), Error> {
             let result = environment.call_static_method(
                 "com/example/vulcans_limes/RustDef",
-                "create_key",
+                "load_key",
                 "(Ljava/lang/String;)V",
                 &[JValue::from(environment.new_string(key_id).unwrap())],
             );
@@ -183,21 +188,14 @@ pub mod jni {
         /// A `Result` that, on success, contains `()`,
         /// indicating that the module was initialized successfully.
         /// On failure, it returns an Error
-        pub fn initialize_module(environment: &JNIEnv,
-                                 key_algorithm: String,
-                                 sym_algorithm: String,
-                                 hash: String,
-                                 key_usages: String)
-                                 -> Result<(), Error> {
+        pub fn initialize_module(environment: &JNIEnv) -> Result<(), Error> {
             let result = environment.call_static_method(
                 "com/example/vulcans_limes/RustDef",
                 "initialize_module",
-                "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V",
-                &[JValue::from(environment.new_string(key_algorithm).unwrap()),
-                    JValue::from(environment.new_string(sym_algorithm).unwrap()),
-                    JValue::from(environment.new_string(hash).unwrap()),
-                    JValue::from(environment.new_string(key_usages).unwrap())],
+                "()V",
+                &[],
             );
+            let _ = Self::check_java_exceptions(environment);
             return match result {
                 Ok(..) => Ok(()),
                 Err(e) => Err(e),
@@ -276,6 +274,7 @@ pub mod jni {
                 "([B)[B",
                 &[JValue::from(environment.byte_array_from_slice(data).unwrap())],
             );
+            let _ = Self::check_java_exceptions(environment);
             let output;
             match result {
                 Ok(r) => { output = r; }

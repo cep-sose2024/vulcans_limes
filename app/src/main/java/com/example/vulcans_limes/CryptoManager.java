@@ -369,16 +369,16 @@ public class CryptoManager {
             SecretKey secretKey = (SecretKey) key;
             SecretKeyFactory factory = SecretKeyFactory.getInstance(secretKey.getAlgorithm(), ANDROID_KEY_STORE);
             keyInfo = (KeyInfo) factory.getKeySpec(secretKey, KeyInfo.class);
-            keyPadding = Arrays.toString(keyInfo.getEncryptionPaddings());
+            keyPadding = keyInfo.getEncryptionPaddings()[0];
         } else if (key instanceof PrivateKey) {
             PrivateKey privateKey = (PrivateKey) key;
             KeyFactory factory = KeyFactory.getInstance(privateKey.getAlgorithm(), ANDROID_KEY_STORE);
             keyInfo = factory.getKeySpec(privateKey, KeyInfo.class);
-            keyPadding = Arrays.toString(keyInfo.getSignaturePaddings());
+            keyPadding = keyInfo.getSignaturePaddings()[0];
         } else {
             throw new KeyStoreException("Unsupported key type");
         }
-        return keyAlgorithm + "/" + Arrays.toString(keyInfo.getBlockModes()) + "/" + keyPadding;
+        return keyAlgorithm + "/" + keyInfo.getBlockModes()[0] + "/" + keyPadding;
     }
 
     /**
@@ -401,7 +401,7 @@ public class CryptoManager {
             InvalidKeySpecException {
         KeyFactory keyFactory = KeyFactory.getInstance(privateKey.getAlgorithm(), ANDROID_KEY_STORE);
         KeyInfo keyInfo = keyFactory.getKeySpec(privateKey, KeyInfo.class);
-        String hashAlgorithm = Arrays.toString(keyInfo.getDigests());
+        String hashAlgorithm = keyInfo.getDigests()[0];
         String algorithm = privateKey.getAlgorithm();
         return hashAlgorithm + "with" + algorithm;
     }

@@ -76,10 +76,11 @@ public class CryptoManager {
      * @throws NoSuchAlgorithmException           if the generation algorithm does not exist or the keystore doesn't exist.
      * @throws NoSuchProviderException            if the provider does not exist.
      * @throws InvalidAlgorithmParameterException for invalid or nonexistent parameters.
-     * @throws UnrecoverableKeyException          if the key cannot be recovered from the keystore.
      * @throws KeyStoreException                  if there is an error accessing the keystore.
      */
-    public void genKey(String key_id, String keyGenInfo) throws CertificateException, IOException, NoSuchAlgorithmException, NoSuchProviderException, InvalidAlgorithmParameterException, UnrecoverableKeyException, KeyStoreException {
+    public void genKey(String key_id, String keyGenInfo) throws CertificateException,
+            IOException, NoSuchAlgorithmException, NoSuchProviderException,
+            InvalidAlgorithmParameterException, KeyStoreException {
         String[] keyGenInfoArr = keyGenInfo.split(";");
         String KEY_ALGORITHM = keyGenInfoArr[0];
         int KEY_SIZE = Integer.parseInt(keyGenInfoArr[1]);
@@ -132,7 +133,10 @@ public class CryptoManager {
      * @throws NoSuchProviderException            if the requested security provider is not available.
      * @throws InvalidAlgorithmParameterException if the algorithm parameters are invalid.
      */
-    public byte[] encryptData(byte[] data) throws NoSuchPaddingException, NoSuchAlgorithmException, CertificateException, IOException, InvalidKeyException, UnrecoverableKeyException, KeyStoreException, IllegalBlockSizeException, BadPaddingException, InvalidKeySpecException, NoSuchProviderException, InvalidAlgorithmParameterException {
+    public byte[] encryptData(byte[] data) throws NoSuchPaddingException, NoSuchAlgorithmException,
+            CertificateException, IOException, InvalidKeyException, UnrecoverableKeyException,
+            KeyStoreException, IllegalBlockSizeException, BadPaddingException, InvalidKeySpecException,
+            NoSuchProviderException, InvalidAlgorithmParameterException {
         keyStore.load(null);
         SecretKey secretKey = (SecretKey) keyStore.getKey(KEY_NAME, null);
         String TRANSFORMATION = buildTransformation(secretKey);
@@ -181,7 +185,10 @@ public class CryptoManager {
      * @throws InvalidKeySpecException            if the key specification is invalid.
      * @throws NoSuchProviderException            if the requested security provider is not available.
      */
-    public byte[] decryptData(byte[] encryptedData) throws NoSuchPaddingException, NoSuchAlgorithmException, CertificateException, IOException, InvalidAlgorithmParameterException, InvalidKeyException, UnrecoverableKeyException, KeyStoreException, IllegalBlockSizeException, BadPaddingException, InvalidKeySpecException, NoSuchProviderException {
+    public byte[] decryptData(byte[] encryptedData) throws NoSuchPaddingException, NoSuchAlgorithmException,
+            CertificateException, IOException, InvalidAlgorithmParameterException, InvalidKeyException,
+            UnrecoverableKeyException, KeyStoreException, IllegalBlockSizeException, BadPaddingException,
+            InvalidKeySpecException, NoSuchProviderException {
         keyStore.load(null);
         SecretKey secretKey = (SecretKey) keyStore.getKey(KEY_NAME, null);
         String TRANSFORMATION = buildTransformation(secretKey);
@@ -214,10 +221,11 @@ public class CryptoManager {
      * @throws NoSuchAlgorithmException           if the generation algorithm does not exist or the keystore doesn't exist.
      * @throws InvalidAlgorithmParameterException for invalid or nonexistent parameters.
      * @throws NoSuchProviderException            if the provider does not exist.
-     * @throws UnrecoverableKeyException          if the key cannot be recovered from the keystore.
      * @throws KeyStoreException                  if there is an error accessing the keystore or the key name is already used.
      */
-    public void generateKeyPair(String key_id, String keyGenInfo) throws CertificateException, IOException, NoSuchAlgorithmException, InvalidAlgorithmParameterException, NoSuchProviderException, UnrecoverableKeyException, KeyStoreException {
+    public void generateKeyPair(String key_id, String keyGenInfo) throws CertificateException, IOException,
+            NoSuchAlgorithmException, InvalidAlgorithmParameterException, NoSuchProviderException,
+            KeyStoreException {
         String[] keyGenInfoArr = keyGenInfo.split(";");
         String KEY_ALGORITHM = keyGenInfoArr[0];
         int KEY_SIZE = Integer.parseInt(keyGenInfoArr[1]);
@@ -260,7 +268,8 @@ public class CryptoManager {
      * @throws InvalidKeyException       if the key cannot be cast to a PrivateKey.
      * @throws SignatureException        if the signature cannot be processed.
      */
-    public byte[] signData(byte[] data) throws NoSuchAlgorithmException, UnrecoverableKeyException, KeyStoreException, InvalidKeyException, SignatureException, InvalidKeySpecException, NoSuchProviderException {
+    public byte[] signData(byte[] data) throws NoSuchAlgorithmException, UnrecoverableKeyException,
+            KeyStoreException, InvalidKeyException, SignatureException, InvalidKeySpecException, NoSuchProviderException {
         Signature signature = Signature.getInstance(buildSignatureAlgorithm((PrivateKey) keyStore.getKey(KEY_NAME, null)));
         signature.initSign((PrivateKey) keyStore.getKey(KEY_NAME, null));
         signature.update(data);
@@ -289,7 +298,8 @@ public class CryptoManager {
      * @throws InvalidKeySpecException   if the key specification is invalid or cannot be retrieved.
      * @throws NoSuchProviderException   if the provider is not available.
      */
-    public boolean verifySignature(byte[] data, byte[] signedBytes) throws SignatureException, InvalidKeyException, KeyStoreException, NoSuchAlgorithmException, UnrecoverableKeyException, InvalidKeySpecException, NoSuchProviderException {
+    public boolean verifySignature(byte[] data, byte[] signedBytes) throws SignatureException, InvalidKeyException,
+            KeyStoreException, NoSuchAlgorithmException, UnrecoverableKeyException, InvalidKeySpecException, NoSuchProviderException {
         Signature verificationSignature = Signature.getInstance(buildSignatureAlgorithm((PrivateKey) keyStore.getKey(KEY_NAME, null)));
         verificationSignature.initVerify(keyStore.getCertificate(KEY_NAME).getPublicKey());
         verificationSignature.update(data);
@@ -348,7 +358,8 @@ public class CryptoManager {
      * @throws NoSuchProviderException  if the requested security provider is not available.
      * @throws KeyStoreException        if there is an error accessing the keystore or if the key type is unsupported.
      */
-    private String buildTransformation(Key key) throws NullPointerException, CertificateException, IOException, NoSuchAlgorithmException, InvalidKeySpecException, NoSuchProviderException, KeyStoreException {
+    private String buildTransformation(Key key) throws NullPointerException, CertificateException,
+            IOException, NoSuchAlgorithmException, InvalidKeySpecException, NoSuchProviderException, KeyStoreException {
         keyStore.load(null);
         KeyInfo keyInfo;
         String keyAlgorithm = key.getAlgorithm();
@@ -386,7 +397,8 @@ public class CryptoManager {
      * @throws NoSuchProviderException  If the specified provider is not available.
      * @throws InvalidKeySpecException  If the key specification is invalid or cannot be retrieved.
      */
-    private String buildSignatureAlgorithm(PrivateKey privateKey) throws NoSuchAlgorithmException, NoSuchProviderException, InvalidKeySpecException {
+    private String buildSignatureAlgorithm(PrivateKey privateKey) throws NoSuchAlgorithmException, NoSuchProviderException,
+            InvalidKeySpecException {
         KeyFactory keyFactory = KeyFactory.getInstance(privateKey.getAlgorithm(), ANDROID_KEY_STORE);
         KeyInfo keyInfo = keyFactory.getKeySpec(privateKey, KeyInfo.class);
         String hashAlgorithm = Arrays.toString(keyInfo.getDigests());
@@ -414,7 +426,9 @@ public class CryptoManager {
      * @throws UnrecoverableKeyException if the key cannot be recovered from the keystore.
      * @throws KeyStoreException         if there is an error accessing the keystore.
      */ // TODO: DELETE BEFORE RELEASE
-    public void showKeyInfo() throws NullPointerException, CertificateException, IOException, NoSuchAlgorithmException, InvalidKeySpecException, NoSuchProviderException, UnrecoverableKeyException, KeyStoreException {
+    public void showKeyInfo() throws NullPointerException, CertificateException, IOException,
+            NoSuchAlgorithmException, InvalidKeySpecException, NoSuchProviderException, UnrecoverableKeyException,
+            KeyStoreException {
         keyStore.load(null);
         Key key = keyStore.getKey(KEY_NAME, null);
         KeyInfo keyInfo;

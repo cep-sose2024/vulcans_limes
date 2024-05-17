@@ -2,7 +2,6 @@ package com.example.vulcans_limes;
 
 import android.app.AlertDialog;
 import android.content.ContextWrapper;
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.database.Cursor;
 import android.graphics.Bitmap;
@@ -44,9 +43,6 @@ public class MainActivity extends AppCompatActivity {
     private ImageView imageView;
     private ActivityResultLauncher<Intent> launcher;
 
-    private CryptoManager cryptoManager;
-
-
     /**
      * This will run upon starting the app. It initializes the screen with its components.
      *
@@ -58,7 +54,7 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        RustDef.demoInit("RSA", "AES", "SHA-512", "");
+        RustDef.demoInit();
 
 
         imageView = findViewById(R.id.idIVimage);
@@ -134,10 +130,8 @@ public class MainActivity extends AppCompatActivity {
                 builder.setView(input);
                 builder.setPositiveButton("OK", (dialog, which) -> {
                     String keyId = input.getText().toString();
-                    RustDef.demoCreate(keyId);
-                    // TODO: for future error handling setKey_NAME should return a boolean to be used her for the snackbar
-                    // Upon calling for showKeyInfo with a non existend loaded KEY_NAME, java will throw a null pointer exception
 
+                    RustDef.demoLoad(keyId);
                     Snackbar.make(v, "The key with ID \"" + keyId + "\" was successfully loaded!", Snackbar.LENGTH_SHORT).show();
                 });
                 builder.setNegativeButton("Cancel", (dialog, which) -> dialog.cancel());
@@ -157,20 +151,13 @@ public class MainActivity extends AppCompatActivity {
                 builder.setTitle("Name the ID of the key to create:");
                 final EditText input = new EditText(this);
                 builder.setView(input);
-                builder.setPositiveButton("OK", new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialog, int which) {
-                        String keyId = input.getText().toString();
-                        RustDef.demoCreate(keyId);
-                        Snackbar.make(v, "The key with ID \"" + keyId + "\" was successfully created!", Snackbar.LENGTH_SHORT).show();
-                    }
+                builder.setPositiveButton("OK", (dialog, which) -> {
+                    String keyId = input.getText().toString();
+                    String keyGenInfo = "AES;256;CBC;PKCS#7";
+                    RustDef.demoCreate(keyId, keyGenInfo);
+                    Snackbar.make(v, "The key with ID \"" + keyId + "\" was successfully created!", Snackbar.LENGTH_SHORT).show();
                 });
-                builder.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialog, int which) {
-                        dialog.cancel();
-                    }
-                });
+                builder.setNegativeButton("Cancel", (dialog, which) -> dialog.cancel());
                 builder.show();
 
             } catch (Exception e) {
@@ -234,7 +221,7 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    private boolean pictureEncrypt(String path) throws Exception {
+    private boolean pictureEncrypt(String path) {
         try {
             ContextWrapper contextWrapper = new ContextWrapper(getApplication());
             File photoDir = contextWrapper.getExternalFilesDir(Environment.DIRECTORY_DCIM);

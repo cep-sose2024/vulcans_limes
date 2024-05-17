@@ -10,8 +10,12 @@ import java.security.NoSuchProviderException;
 import java.security.SignatureException;
 import java.security.UnrecoverableKeyException;
 import java.security.cert.CertificateException;
+import java.security.spec.InvalidKeySpecException;
 import java.util.ArrayList;
-import java.util.Arrays;
+
+import javax.crypto.BadPaddingException;
+import javax.crypto.IllegalBlockSizeException;
+import javax.crypto.NoSuchPaddingException;
 
 /**
  * This class provides the method declarations that are the interface for the JNI.
@@ -74,12 +78,9 @@ class RustDef {
      */
     static native byte[] demoEncrypt(byte[] data);
 
-    static native void demoCreate(String key_id);
+    static native void demoCreate(String key_id, String keyGenInfo);
 
-    static native void demoInit(String key_algorithm,
-                                String sym_algorithm,
-                                String hash,
-                                String key_usages);
+    static native void demoInit();
 
 
     static native byte[] demoDecrypt(byte[] data);
@@ -87,6 +88,8 @@ class RustDef {
     static native byte[] demoSign(byte[] data);
 
     static native boolean demoVerify(byte[] data);
+
+    static native void demoLoad(String key_id);
 
     //----------------------------------------------------------------------------------------------
     //Java methods that can be called from Rust
@@ -107,8 +110,8 @@ class RustDef {
      *
      * @param key_id - String that uniquely identifies the key so that it can be retrieved later
      */
-    static void create_key(String key_id) throws InvalidAlgorithmParameterException, UnrecoverableKeyException, CertificateException, IOException, NoSuchAlgorithmException, KeyStoreException, NoSuchProviderException {
-        cryptoManager.genKey(key_id);
+    static void create_key(String key_id, String keyGenInfo) throws InvalidAlgorithmParameterException, UnrecoverableKeyException, CertificateException, IOException, NoSuchAlgorithmException, KeyStoreException, NoSuchProviderException {
+        cryptoManager.genKey(key_id, keyGenInfo);
     }
 
     /**
@@ -119,8 +122,8 @@ class RustDef {
      *
      * @param key_id - String that uniquely identifies the key so that it can be retrieved later
      */
-    static void load_key(String key_id) {
-        cryptoManager.setKEY_NAME(key_id);
+    static void load_key(String key_id) throws UnrecoverableKeyException, KeyStoreException {
+        cryptoManager.loadKey(key_id);
     }
 
     /**
@@ -128,20 +131,9 @@ class RustDef {
      * <p>
      * This method initializes the TPM context and prepares it for use. It should be called
      * before performing any other operations with the TPM.
-     *
-     * @param key_algorithm - The asymmetric encryption algorithm to be used for the key
-     * @param sym_algorithm - An optional symmetric encryption algorithm to be used with the key
-     * @param hash          - An optional hash algorithm to be used with the key
-     * @param key_usages    - A vector of `AppKeyUsage` values specifying
-     *                      the intended usages for the key
      */
-    static void initialize_module(String key_algorithm,
-                                  String sym_algorithm,
-                                  String hash,
-                                  String key_usages) throws KeyStoreException {
-        //TODO @Erik MUST implement asymmetric encrytion in CryptoManager
-        ArrayList<String> usagesList = new ArrayList<>(Arrays.asList(key_usages.split(";")));
-        cryptoManager = new CryptoManager(key_algorithm, sym_algorithm, hash, usagesList);
+    static void initialize_module() throws KeyStoreException {
+        cryptoManager = new CryptoManager();
 
     }
 
@@ -151,11 +143,8 @@ class RustDef {
      * @param data - A byte array representing the data to be signed
      * @return - The signed data
      */
-    static byte[] sign_data(byte[] data) throws UnrecoverableKeyException, NoSuchAlgorithmException, KeyStoreException, SignatureException, InvalidKeyException {
-        //TODO @Erik implement signing of data in CryptoManager
-        byte[] signedData = cryptoManager.signData(data);
-        System.out.println("Recieved data in sign_data: " + Arrays.toString(data));
-        return signedData;
+    static byte[] sign_data(byte[] data) throws UnrecoverableKeyException, NoSuchAlgorithmException, KeyStoreException, SignatureException, InvalidKeyException, InvalidKeySpecException, NoSuchProviderException {
+        return cryptoManager.signData(data);
     }
 
     /**
@@ -165,8 +154,7 @@ class RustDef {
      * @param signature - A byte array representing the signature to be verified against the data
      * @return - true if the signature is vaild, false otherwise
      */
-    static boolean verify_signature(byte[] data, byte[] signature) throws SignatureException, KeyStoreException, NoSuchAlgorithmException, InvalidKeyException {
-        //TODO @Erik implement veryfication of signatures in CryptoManager
+    static boolean verify_signature(byte[] data, byte[] signature) throws SignatureException, KeyStoreException, NoSuchAlgorithmException, InvalidKeyException, UnrecoverableKeyException, InvalidKeySpecException, NoSuchProviderException {
         return cryptoManager.verifySignature(data, signature);
     }
 
@@ -186,10 +174,10 @@ class RustDef {
      * @param encrypted_data - a byte array representing the data to be decrypted
      * @return - an ArrayList\<Byte\> containing the encrypted data
      */
-    static byte[] decrypt_data(byte[] encrypted_data) throws Exception {
-        System.out.println("reached");
+    static byte[] decrypt_data(byte[] encrypted_data) throws InvalidAlgorithmParameterException, UnrecoverableKeyException,
+            NoSuchPaddingException, IllegalBlockSizeException, CertificateException, NoSuchAlgorithmException,
+            IOException, KeyStoreException, BadPaddingException, InvalidKeySpecException, InvalidKeyException,
+            NoSuchProviderException {
         return cryptoManager.decryptData(encrypted_data);
     }
-
-    //TODO: HASHING, WHAT RETURN VALUE??
 }

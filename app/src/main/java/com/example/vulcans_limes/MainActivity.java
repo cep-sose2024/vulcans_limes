@@ -27,6 +27,14 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.security.InvalidKeyException;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+import java.security.NoSuchProviderException;
+import java.security.SignatureException;
+import java.security.UnrecoverableKeyException;
+import java.security.spec.InvalidKeySpecException;
+import java.util.Arrays;
 
 
 /**
@@ -43,6 +51,7 @@ public class MainActivity extends AppCompatActivity {
     private ImageView imageView;
     private ActivityResultLauncher<Intent> launcher;
 
+
     /**
      * This will run upon starting the app. It initializes the screen with its components.
      *
@@ -57,11 +66,25 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        // generate asymmetric key
+        String keyGenInfo = "RSA;2048;SHA-512;PKCS1";
+
+
+        String toSign = "Sign me!";
+        String signed = "";
+        RustDef.demoCreate("KeyPair2", keyGenInfo);
+        System.out.println("Sentence to sign: " + toSign);
+        signed = Arrays.toString(RustDef.demoSign(toSign.getBytes()));
+        try {
+            System.out.println("Verified? " + RustDef.verify_signature(toSign.getBytes(), signed.getBytes()));
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+
         imageView = findViewById(R.id.idIVimage);
         Button encButton = findViewById(R.id.idBtnEncrypt);
         Button decButton = findViewById(R.id.idBtnDecrypt);
-        //signButton = findViewById(R.id.idBtnSign);
-        //verifyButton = findViewById(R.id.idBtnVerify);
         Button loadButton = findViewById(R.id.idBtnLoad);
         Button createButton = findViewById(R.id.idBtnCreate);
 
@@ -92,32 +115,6 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        /*
-        //When sign button is pressed
-        signButton.setOnClickListener(v -> {
-            try{
-                //TODO: sign();
-
-
-                Snackbar.make(v, "The String \"Sign me!\" got signed!", Snackbar.LENGTH_SHORT).show();
-
-            } catch (Exception e){
-                e.printStackTrace();
-            }
-        });
-
-
-        //When verify button is pressed
-        verifyButton.setOnClickListener(v -> {
-            try{
-                //TODO: verify();
-
-                Snackbar.make(v, "Successful verification!", Snackbar.LENGTH_SHORT).show();
-            } catch (Exception e){
-                e.printStackTrace();
-            }
-        });
-        */
 
         //When load key button is pressed
         loadButton.setOnClickListener(v -> {
@@ -153,8 +150,10 @@ public class MainActivity extends AppCompatActivity {
                 builder.setView(input);
                 builder.setPositiveButton("OK", (dialog, which) -> {
                     String keyId = input.getText().toString();
-                    String keyGenInfo = "AES;256;CBC;PKCS7Padding";
-                    RustDef.demoCreate(keyId, keyGenInfo);
+                    // generate symmetric key
+                    String keyGenInfoSYM = "AES;256;CBC;PKCS7Padding";
+
+                    RustDef.demoCreate(keyId, keyGenInfoSYM);
                     Snackbar.make(v, "The key with ID \"" + keyId + "\" was successfully created!", Snackbar.LENGTH_SHORT).show();
                 });
                 builder.setNegativeButton("Cancel", (dialog, which) -> dialog.cancel());

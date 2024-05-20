@@ -12,4 +12,5 @@ robusta_jni = "0.2"
 jni = "^0.20"
 android_logger = "^0"
 log = "^0"
-#crypto-layer = { git = "https://github.com/nmshd/rust-crypto.git" }
+#crypto-layer = {git = "https://github.com/nmshd/rust-crypto.git"}
+crypto_layer = "0.1.0"

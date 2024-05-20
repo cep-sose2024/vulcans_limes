@@ -248,6 +248,7 @@ public class CryptoManager {
                 .setKeySize(KEY_SIZE)
                 .setDigests(HASH)
                 .setSignaturePaddings(PADDING)
+                .setUserAuthenticationRequired(false)
                 .setIsStrongBoxBacked(true)
                 .build());
         keyPairGen.generateKeyPair();

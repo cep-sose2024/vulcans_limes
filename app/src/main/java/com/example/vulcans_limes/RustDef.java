@@ -125,7 +125,8 @@ class RustDef {
      */
     static void create_key(String key_id, String keyGenInfo) throws InvalidAlgorithmParameterException, CertificateException,
             IOException, NoSuchAlgorithmException, KeyStoreException, NoSuchProviderException {
-        cryptoManager.genKey(key_id, keyGenInfo);
+        if (keyGenInfo.contains("RSA")) cryptoManager.generateKeyPair(key_id, keyGenInfo);
+        else cryptoManager.genKey(key_id, keyGenInfo);
     }
 
     /**

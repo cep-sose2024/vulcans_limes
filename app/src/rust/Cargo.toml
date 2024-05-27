@@ -12,5 +12,6 @@ robusta_jni = "0.2"
 jni = "^0.20"
 android_logger = "^0"
 log = "^0"
+#crypto-layer = {git = "https://github.com/cep-sose2024/rust-crypto-knox"}
 #crypto-layer = {git = "https://github.com/nmshd/rust-crypto.git"}
-crypto_layer = "0.1.0"
+#crypto_layer = "0.1.0"

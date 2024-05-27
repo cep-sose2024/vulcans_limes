@@ -1,0 +1,3 @@
+[submodule "rust-crypto-knox"]
+	path = rust-crypto-knox
+	url = https://github.com/cep-sose2024/rust-crypto-knox.git

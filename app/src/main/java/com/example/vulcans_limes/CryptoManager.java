@@ -231,6 +231,7 @@ public class CryptoManager {
         int KEY_SIZE = Integer.parseInt(keyGenInfoArr[1]);
         String HASH = keyGenInfoArr[2];
         String PADDING = keyGenInfoArr[3];
+        System.out.println(Arrays.toString(keyGenInfoArr));
 
         KEY_NAME = key_id;
         keyStore.load(null);
@@ -241,17 +242,23 @@ public class CryptoManager {
         }
 
         KeyPairGenerator keyPairGen = KeyPairGenerator.getInstance(KEY_ALGORITHM, ANDROID_KEY_STORE);
-        keyPairGen.initialize(new KeyGenParameterSpec.Builder(KEY_NAME,
+           keyPairGen.initialize(new KeyGenParameterSpec.Builder(KEY_NAME,
                 KeyProperties.PURPOSE_SIGN | KeyProperties.PURPOSE_VERIFY)
-                .setCertificateSubject(new X500Principal("CN=" + KEY_NAME))
+                .setIsStrongBoxBacked(true)
+/*                .setCertificateSubject(new X500Principal("CN=" + KEY_NAME))
                 .setAttestationChallenge(null)
+                   .setUserAuthenticationRequired(false)*/
                 .setKeySize(KEY_SIZE)
                 .setDigests(HASH)
                 .setSignaturePaddings(PADDING)
-                .setUserAuthenticationRequired(false)
-                .setIsStrongBoxBacked(true)
+
                 .build());
         keyPairGen.generateKeyPair();
+        try {
+            System.out.println(buildSignatureAlgorithm((PrivateKey) keyStore.getKey(KEY_NAME, null)));
+        } catch( Exception e) {
+            e.printStackTrace();
+        }
     }
 
     /**
@@ -402,8 +409,10 @@ public class CryptoManager {
             InvalidKeySpecException {
         KeyFactory keyFactory = KeyFactory.getInstance(privateKey.getAlgorithm(), ANDROID_KEY_STORE);
         KeyInfo keyInfo = keyFactory.getKeySpec(privateKey, KeyInfo.class);
-        String hashAlgorithm = keyInfo.getDigests()[0];
+        String split[] = keyInfo.getDigests()[0].split("-");
+        String hashAlgorithm = split[0]+split[1];
         String algorithm = privateKey.getAlgorithm();
+        String padding = keyInfo.getSignaturePaddings()[0];
         return hashAlgorithm + "with" + algorithm;
     }
 

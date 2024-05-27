@@ -27,12 +27,14 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
 import java.security.SignatureException;
 import java.security.UnrecoverableKeyException;
+import java.security.cert.CertificateException;
 import java.security.spec.InvalidKeySpecException;
 import java.util.Arrays;
 
@@ -50,6 +52,7 @@ public class MainActivity extends AppCompatActivity {
 
     private ImageView imageView;
     private ActivityResultLauncher<Intent> launcher;
+    private CryptoManager cm;
 
 
     /**
@@ -61,7 +64,12 @@ public class MainActivity extends AppCompatActivity {
      */
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        RustDef.demoInit();
+        //RustDef.demoInit();
+        try {
+            cm = new CryptoManager();
+        } catch (KeyStoreException e) {
+            throw new RuntimeException(e);
+        }
 
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
@@ -71,12 +79,25 @@ public class MainActivity extends AppCompatActivity {
 
 
         String toSign = "Sign me!";
-        String signed = "";
-        RustDef.demoCreate("KeyPair2", keyGenInfo);
-        System.out.println("Sentence to sign: " + toSign);
-        signed = Arrays.toString(RustDef.demoSign(toSign.getBytes()));
+        String signed;
+        //RustDef.demoCreate("KeyPair2", keyGenInfo);
         try {
-            System.out.println("Verified? " + RustDef.verify_signature(toSign.getBytes(), signed.getBytes()));
+            cm.generateKeyPair("KeyPair1", keyGenInfo);
+        } catch (CertificateException | IOException | NoSuchAlgorithmException |
+                 InvalidAlgorithmParameterException | NoSuchProviderException | KeyStoreException e) {
+            throw new RuntimeException(e);
+        }
+        System.out.println("Sentence to sign: " + toSign);
+        try {
+            signed = Arrays.toString((cm.signData(toSign.getBytes())));
+        } catch (NoSuchAlgorithmException | UnrecoverableKeyException | KeyStoreException |
+                 InvalidKeyException | SignatureException | InvalidKeySpecException |
+                 NoSuchProviderException e) {
+            throw new RuntimeException(e);
+        }
+        //signed = Arrays.toString(RustDef.demoSign(toSign.getBytes()));
+        try {
+            System.out.println("Verified? " + cm.verifySignature(toSign.getBytes(), signed.getBytes()));
         } catch (Exception e) {
             e.printStackTrace();
         }

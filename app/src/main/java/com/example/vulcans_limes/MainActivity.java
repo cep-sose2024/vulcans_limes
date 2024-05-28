@@ -73,23 +73,23 @@ public class MainActivity extends AppCompatActivity {
 
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+/*
 
         // generate asymmetric key
-        String keyGenInfo = "RSA;2048;SHA-512;PKCS1";
-
-
+        String keyGenInfo = "DESede;CBC;PKCS7Padding";
         String toSign = "Sign me!";
-        String signed;
+        byte[] signed;
+
         //RustDef.demoCreate("KeyPair2", keyGenInfo);
         try {
             cm.generateKeyPair("KeyPair1", keyGenInfo);
         } catch (CertificateException | IOException | NoSuchAlgorithmException |
-                 InvalidAlgorithmParameterException | NoSuchProviderException | KeyStoreException e) {
+                 InvalidAlgorithmParameterException | NoSuchProviderException |
+                 KeyStoreException e) {
             throw new RuntimeException(e);
         }
-        System.out.println("Sentence to sign: " + toSign);
         try {
-            signed = Arrays.toString((cm.signData(toSign.getBytes())));
+            signed = cm.signData(toSign.getBytes());
         } catch (NoSuchAlgorithmException | UnrecoverableKeyException | KeyStoreException |
                  InvalidKeyException | SignatureException | InvalidKeySpecException |
                  NoSuchProviderException e) {
@@ -97,10 +97,11 @@ public class MainActivity extends AppCompatActivity {
         }
         //signed = Arrays.toString(RustDef.demoSign(toSign.getBytes()));
         try {
-            System.out.println("Verified? " + cm.verifySignature(toSign.getBytes(), signed.getBytes()));
+            System.out.println("Verified? " + cm.verifySignature(toSign.getBytes(), signed));
         } catch (Exception e) {
             e.printStackTrace();
         }
+*/
 
 
         imageView = findViewById(R.id.idIVimage);
@@ -148,8 +149,12 @@ public class MainActivity extends AppCompatActivity {
                 builder.setView(input);
                 builder.setPositiveButton("OK", (dialog, which) -> {
                     String keyId = input.getText().toString();
-
-                    RustDef.demoLoad(keyId);
+                    try {
+                        cm.loadKey(keyId);
+                    } catch (KeyStoreException | UnrecoverableKeyException e) {
+                        throw new RuntimeException(e);
+                    }
+                    //RustDef.demoLoad(keyId);
                     Snackbar.make(v, "The key with ID \"" + keyId + "\" was successfully loaded!", Snackbar.LENGTH_SHORT).show();
                 });
                 builder.setNegativeButton("Cancel", (dialog, which) -> dialog.cancel());
@@ -172,10 +177,19 @@ public class MainActivity extends AppCompatActivity {
                 builder.setPositiveButton("OK", (dialog, which) -> {
                     String keyId = input.getText().toString();
                     // generate symmetric key
-                    String keyGenInfoSYM = "AES;256;CBC;PKCS7Padding";
-
-                    RustDef.demoCreate(keyId, keyGenInfoSYM);
+                    String keyGenInfoSYM = "AES;256;GCM;NoPadding";
+                    try {
+                        cm.genKey(keyId, keyGenInfoSYM);
+                        cm.showKeyInfo();
+                    } catch (CertificateException | IOException | NoSuchAlgorithmException |
+                             NoSuchProviderException | InvalidAlgorithmParameterException |
+                             KeyStoreException | UnrecoverableKeyException |
+                             InvalidKeySpecException e) {
+                        throw new RuntimeException(e);
+                    }
+                    //RustDef.demoCreate(keyId, keyGenInfoSYM);
                     Snackbar.make(v, "The key with ID \"" + keyId + "\" was successfully created!", Snackbar.LENGTH_SHORT).show();
+
                 });
                 builder.setNegativeButton("Cancel", (dialog, which) -> dialog.cancel());
                 builder.show();
@@ -198,8 +212,8 @@ public class MainActivity extends AppCompatActivity {
 
         File decFile = new File(photoDir, "decfile.jpg");
 
-        byte[] decBytes = RustDef.demoDecrypt(bytes);
-
+//        byte[] decBytes = RustDef.demoDecrypt(bytes);
+        byte[] decBytes = cm.decryptData(bytes);
         createFileFromByteArray(decBytes, decFile);
 
 
@@ -246,7 +260,9 @@ public class MainActivity extends AppCompatActivity {
             ContextWrapper contextWrapper = new ContextWrapper(getApplication());
             File photoDir = contextWrapper.getExternalFilesDir(Environment.DIRECTORY_DCIM);
             File encFile = new File(photoDir, "encfile" + ".jpg");
-            byte[] encryptedData = RustDef.demoEncrypt(toByteArray(path));
+//            byte[] encryptedData = RustDef.demoEncrypt(toByteArray(path));
+            byte[] encryptedData = cm.encryptData(toByteArray(path));
+
             createFileFromByteArray(encryptedData, encFile);
 
             return true;

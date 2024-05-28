@@ -25,6 +25,7 @@ import java.security.Signature;
 import java.security.SignatureException;
 import java.security.UnrecoverableKeyException;
 import java.security.cert.CertificateException;
+import java.security.spec.ECGenParameterSpec;
 import java.security.spec.InvalidKeySpecException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -94,7 +95,6 @@ public class CryptoManager {
         if (keyStore.containsAlias(KEY_NAME)) {
             throw new KeyStoreException("Key with name " + KEY_NAME + " already exists.");
         }
-
         KeyGenerator keyGen = KeyGenerator.getInstance(KEY_ALGORITHM, ANDROID_KEY_STORE);
         keyGen.init(new KeyGenParameterSpec.Builder(KEY_NAME,
                 KeyProperties.PURPOSE_ENCRYPT |
@@ -227,11 +227,9 @@ public class CryptoManager {
             NoSuchAlgorithmException, InvalidAlgorithmParameterException, NoSuchProviderException,
             KeyStoreException {
         String[] keyGenInfoArr = keyGenInfo.split(";");
-        String KEY_ALGORITHM = keyGenInfoArr[0];
-        int KEY_SIZE = Integer.parseInt(keyGenInfoArr[1]);
-        String HASH = keyGenInfoArr[2];
-        String PADDING = keyGenInfoArr[3];
         System.out.println(Arrays.toString(keyGenInfoArr));
+        String KEY_ALGORITHM = keyGenInfoArr[0];
+        String HASH = keyGenInfoArr[2];
 
         KEY_NAME = key_id;
         keyStore.load(null);
@@ -242,21 +240,31 @@ public class CryptoManager {
         }
 
         KeyPairGenerator keyPairGen = KeyPairGenerator.getInstance(KEY_ALGORITHM, ANDROID_KEY_STORE);
-           keyPairGen.initialize(new KeyGenParameterSpec.Builder(KEY_NAME,
-                KeyProperties.PURPOSE_SIGN | KeyProperties.PURPOSE_VERIFY)
-                .setIsStrongBoxBacked(true)
-/*                .setCertificateSubject(new X500Principal("CN=" + KEY_NAME))
-                .setAttestationChallenge(null)
-                   .setUserAuthenticationRequired(false)*/
-                .setKeySize(KEY_SIZE)
-                .setDigests(HASH)
-                .setSignaturePaddings(PADDING)
+        if (KEY_ALGORITHM.contains("EC")) {
+            String CURVE = keyGenInfoArr[1];
+            keyPairGen.initialize(
+                    new KeyGenParameterSpec.Builder(
+                            KEY_NAME,
+                            KeyProperties.PURPOSE_SIGN)
+                            .setAlgorithmParameterSpec(new ECGenParameterSpec(CURVE))
+                            .setDigests(HASH)
+                            .build());
 
-                .build());
+        } else {
+            int KEY_SIZE = Integer.parseInt(keyGenInfoArr[1]);
+            String PADDING = keyGenInfoArr[3];
+            keyPairGen.initialize(new KeyGenParameterSpec.Builder(KEY_NAME,
+                    KeyProperties.PURPOSE_SIGN | KeyProperties.PURPOSE_VERIFY)
+                    .setDigests(HASH)
+                    .setSignaturePaddings(PADDING)
+                    .setIsStrongBoxBacked(true)
+                    .build());
+        }
+
         keyPairGen.generateKeyPair();
         try {
             System.out.println(buildSignatureAlgorithm((PrivateKey) keyStore.getKey(KEY_NAME, null)));
-        } catch( Exception e) {
+        } catch (Exception e) {
             e.printStackTrace();
         }
     }
@@ -324,7 +332,7 @@ public class CryptoManager {
      * @return An array of Byte objects corresponding to the elements of the input byte array.
      * @throws NullPointerException if the input byte array is null.
      */
-    public Byte[] toByte(byte[] bytesPrim) {
+    public Byte[] toByte(byte[] bytesPrim) { // TODO: still needed?
         if (bytesPrim == null) {
             throw new NullPointerException("Input byte array cannot be null.");
         }
@@ -371,7 +379,7 @@ public class CryptoManager {
         keyStore.load(null);
         KeyInfo keyInfo;
         String keyAlgorithm = key.getAlgorithm();
-        String keyPadding = "";
+        String keyPadding;
 
         if (key instanceof SecretKey) {
             SecretKey secretKey = (SecretKey) key;
@@ -409,10 +417,11 @@ public class CryptoManager {
             InvalidKeySpecException {
         KeyFactory keyFactory = KeyFactory.getInstance(privateKey.getAlgorithm(), ANDROID_KEY_STORE);
         KeyInfo keyInfo = keyFactory.getKeySpec(privateKey, KeyInfo.class);
-        String split[] = keyInfo.getDigests()[0].split("-");
-        String hashAlgorithm = split[0]+split[1];
+        String hashAlgorithm = keyInfo.getDigests()[0].replaceAll("-", "");
         String algorithm = privateKey.getAlgorithm();
-        String padding = keyInfo.getSignaturePaddings()[0];
+        if (algorithm.contains("EC")) {
+            algorithm += "DSA";
+        }
         return hashAlgorithm + "with" + algorithm;
     }
 

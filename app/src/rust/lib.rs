@@ -2,6 +2,14 @@ use robusta_jni::bridge;
 
 #[bridge]
 pub mod jni {
+    extern crate crypto_layer;
+    use crypto_layer::common::crypto::algorithms::encryption::BlockCiphers::Aes;
+    use crypto_layer::common::crypto::algorithms::encryption::SymmetricMode;
+    use crypto_layer::common::crypto::algorithms::KeyBits::Bits128;
+    use crypto_layer::common::factory::SecurityModule;
+    use crypto_layer::SecModules;
+    use crypto_layer::tpm::android::knox::KnoxConfig;
+    use crypto_layer::tpm::core::instance::{AndroidTpmType, TpmType};
     #[allow(unused_imports)]
     use robusta_jni::bridge;
     use robusta_jni::convert::{IntoJavaValue, Signature, TryFromJavaValue, TryIntoJavaValue};
@@ -59,9 +67,27 @@ pub mod jni {
             return String::from("empty method")
         }
 
-        pub extern "jni" fn demoCreate(environment: &JNIEnv, key_id: String, key_gen_info: String) -> () {
-            Self::create_key(environment, key_id, key_gen_info).unwrap();
+        pub extern "jni" fn demoCreate(environment: &JNIEnv, key_id: String, _key_gen_info: String) -> () {
+            // Self::create_key(environment, key_id, key_gen_info).unwrap();
+            // let _ = Self::check_java_exceptions(environment);
+            println!("Here");
+            let instance = SecModules::get_instance("test_key".to_owned(),
+                                                    SecurityModule::Tpm(TpmType::Android(AndroidTpmType::Knox)),
+                                                    None).unwrap();
+            let config = KnoxConfig::new(None,
+                                         Some(Aes(SymmetricMode::Cbc, Bits128)),
+                                         environment.get_java_vm().unwrap());
+            instance
+                .lock()
+                .unwrap()
+                .initialize_module()
+                .expect("Failed to initialize module");
             let _ = Self::check_java_exceptions(environment);
+            instance
+                .lock()
+                .unwrap()
+                .create_key(&*key_id, config)
+                .expect("Failed to create RSA key");
         }
 
         pub extern "jni" fn demoInit(environment: &JNIEnv) -> () {

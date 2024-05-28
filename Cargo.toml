@@ -5,7 +5,7 @@ edition = "2021"
 
 [lib]
 crate-type = ["cdylib"]
-path = "lib.rs"
+path = "./app/src/rust/lib.rs"
 
 
 [dependencies]
@@ -13,4 +13,4 @@ robusta_jni = "0.2"
 jni = "^0.20"
 android_logger = "^0"
 log = "^0"
-crypto-layer = {path = "/Users/noahp/StudioProjects/vulcans_limes/rust-crypto-knox", features=["tpm", "android"]}
+crypto-layer = { path = "rust-crypto-knox", features = ["tpm", "android"] }

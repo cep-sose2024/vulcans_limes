@@ -1,5 +1,4 @@
 use robusta_jni::bridge;
-use crypto_layer::SecurityModuleError;
 
 #[bridge]
 pub mod jni {
@@ -11,6 +10,7 @@ pub mod jni {
     use robusta_jni::jni::objects::{AutoLocal, JValue};
     use robusta_jni::jni::sys::jbyteArray;
 
+    use crypto_layer::SecurityModuleError;
 
     #[derive(Signature, TryIntoJavaValue, IntoJavaValue, TryFromJavaValue)]
     #[package(com.example.vulcans_1limes)]
@@ -133,6 +133,7 @@ pub mod jni {
         /// `key_id` - String that uniquely identifies the key so that it can be retrieved later
         pub fn create_key(environment: &JNIEnv, key_id: String, key_gen_info: String)
                           -> Result<(), SecurityModuleError> {
+
             let result = environment.call_static_method(
                 "com/example/vulcans_limes/RustDef",
                 "create_key",

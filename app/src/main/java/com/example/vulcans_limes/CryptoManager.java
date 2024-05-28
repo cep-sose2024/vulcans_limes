@@ -46,7 +46,6 @@ public class CryptoManager {
     private static final String ANDROID_KEY_STORE = "AndroidKeyStore";
     private final KeyStore keyStore;
     private String KEY_NAME;
-    private byte[] encryptCipher;
 
     /**
      * Constructs a new instance of {@code CryptoManager} with the default Android KeyStore.
@@ -136,28 +135,26 @@ public class CryptoManager {
     public byte[] encryptData(byte[] data) throws NoSuchPaddingException, NoSuchAlgorithmException,
             CertificateException, IOException, InvalidKeyException, UnrecoverableKeyException,
             KeyStoreException, IllegalBlockSizeException, BadPaddingException, InvalidKeySpecException,
-            NoSuchProviderException, InvalidAlgorithmParameterException {
+            NoSuchProviderException {
+
         keyStore.load(null);
         SecretKey secretKey = (SecretKey) keyStore.getKey(KEY_NAME, null);
         String TRANSFORMATION = buildTransformation(secretKey);
+
         Cipher cipher = Cipher.getInstance(TRANSFORMATION);
+        cipher.init(Cipher.ENCRYPT_MODE, secretKey);
+        byte[] iv = cipher.getIV();
 
         if (TRANSFORMATION.contains("/GCM/")) {
-            byte[] iv = new byte[12]; // GCM standard IV size
-            SecureRandom secureRandom = new SecureRandom();
-            secureRandom.nextBytes(iv);
-            GCMParameterSpec gcmParameterSpec = new GCMParameterSpec(128, iv); // 128 is the recommended TagSize
-            cipher.init(Cipher.ENCRYPT_MODE, secretKey, gcmParameterSpec);
-            byte[] encryptedData = cipher.doFinal(data);
-            ByteBuffer byteBuffer = ByteBuffer.allocate(iv.length + encryptedData.length);
-            byteBuffer.put(iv);
-            byteBuffer.put(encryptedData);
-            return byteBuffer.array();
+            assert iv.length == 12; // GCM standard IV size is 12 Byte
         } else {
-            cipher.init(Cipher.ENCRYPT_MODE, secretKey);
-            encryptCipher = cipher.getIV();
-            return cipher.doFinal(data);
+            assert iv.length == 16; // CBC & CTR standard IV size is 16 Byte
         }
+        byte[] encryptedData = cipher.doFinal(data);
+        ByteBuffer byteBuffer = ByteBuffer.allocate(iv.length + encryptedData.length);
+        byteBuffer.put(iv);
+        byteBuffer.put(encryptedData);
+        return byteBuffer.array();
     }
 
     /**
@@ -193,17 +190,21 @@ public class CryptoManager {
         SecretKey secretKey = (SecretKey) keyStore.getKey(KEY_NAME, null);
         String TRANSFORMATION = buildTransformation(secretKey);
         Cipher cipher = Cipher.getInstance(TRANSFORMATION);
-
+        ByteBuffer byteBuffer = ByteBuffer.wrap(encryptedData);
+        byte[] iv;
         if (TRANSFORMATION.contains("/GCM/")) {
-            ByteBuffer byteBuffer = ByteBuffer.wrap(encryptedData);
-            byte[] iv = new byte[12]; // GCM standard IV size
+            iv = new byte[12]; // GCM standard IV size
             byteBuffer.get(iv);
             encryptedData = new byte[byteBuffer.remaining()];
             byteBuffer.get(encryptedData);
             GCMParameterSpec gcmParameterSpec = new GCMParameterSpec(128, iv); // 128 is the recommended TagSize
             cipher.init(Cipher.DECRYPT_MODE, secretKey, gcmParameterSpec);
         } else {
-            cipher.init(Cipher.DECRYPT_MODE, secretKey, new IvParameterSpec(encryptCipher));
+            iv = new byte[16]; // CBC & CTR standard IV size
+            byteBuffer.get(iv);
+            encryptedData = new byte[byteBuffer.remaining()];
+            byteBuffer.get(encryptedData);
+            cipher.init(Cipher.DECRYPT_MODE, secretKey, new IvParameterSpec(iv));
         }
         return cipher.doFinal(encryptedData);
     }

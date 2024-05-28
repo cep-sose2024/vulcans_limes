@@ -177,7 +177,7 @@ public class MainActivity extends AppCompatActivity {
                 builder.setPositiveButton("OK", (dialog, which) -> {
                     String keyId = input.getText().toString();
                     // generate symmetric key
-                    String keyGenInfoSYM = "AES;256;GCM;NoPadding";
+                    String keyGenInfoSYM = "AES;256;CTR;NoPadding";
                     try {
                         cm.genKey(keyId, keyGenInfoSYM);
                         cm.showKeyInfo();

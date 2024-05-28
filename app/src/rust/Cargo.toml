@@ -13,4 +13,4 @@ robusta_jni = "0.2"
 jni = "^0.20"
 android_logger = "^0"
 log = "^0"
-crypto-layer = {path = "/Users/noahp/StudioProjects/vulcans_limes/rust-crypto-knox"}
+crypto-layer = {path = "/Users/noahp/StudioProjects/vulcans_limes/rust-crypto-knox", features = ["android","tpm"]}

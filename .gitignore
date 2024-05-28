@@ -1,0 +1,9 @@
+/shelf/
+/workspace.xml
+*.log
+*.iml
+*idea/
+app/build/
+.gradle/
+/local.properties
+/config.properties

@@ -1,38 +1,43 @@
-package vulcans_limes;
+package com.example.vulcans_limes;
 
+import android.app.AlertDialog;
+import android.content.ContextWrapper;
 import android.content.Intent;
 import android.database.Cursor;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Environment;
 import android.provider.MediaStore;
-import android.security.keystore.KeyGenParameterSpec;
-import android.security.keystore.KeyProperties;
+import android.view.View;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.Toast;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
-import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 
-import com.example.vulcans_limes.R;
-import vulcans_limes.RustDef;
+import com.google.android.material.snackbar.Snackbar;
 
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.security.InvalidAlgorithmParameterException;
-import java.security.Key;
-import java.security.KeyStore;
+import java.security.InvalidKeyException;
+import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
+import java.security.SignatureException;
+import java.security.UnrecoverableKeyException;
 import java.security.cert.CertificateException;
+import java.security.spec.InvalidKeySpecException;
 import java.util.Arrays;
-import java.util.Base64;
 
-import javax.crypto.Cipher;
-import javax.crypto.KeyGenerator;
-import javax.crypto.SecretKey;
-import javax.crypto.spec.IvParameterSpec;
 
 /**
  * Main Activity for Android Device App.
@@ -44,43 +49,46 @@ import javax.crypto.spec.IvParameterSpec;
  */
 public class MainActivity extends AppCompatActivity {
 
-    public static final String TRANSFORMATION = KeyProperties.KEY_ALGORITHM_AES +
-                                                "/" + KeyProperties.BLOCK_MODE_CBC + "/"
-                                                 + KeyProperties.ENCRYPTION_PADDING_PKCS7;
-    public static final String KEY_NAME = "key";
-    public static final String ANDROID_KEY_STORE = "AndroidKeyStore";
-
-    byte[] encryptCipher;
-
-    KeyStore keyStore;
-
-    KeyGenerator keyGen;
 
     private ImageView imageView;
-    private Button encButton, decButton;
     private ActivityResultLauncher<Intent> launcher;
+    private CryptoManager cm;
 
 
-
-    @Override
     /**
      * This will run upon starting the app. It initializes the screen with its components.
      *
+     * @param savedInstanceState If the activity is being re-initialized after
+     *                           previously being shut down then this Bundle contains the data it most
+     *                           recently supplied in {@link #onSaveInstanceState}.  <b><i>Note: Otherwise it is null.</i></b>
      */
+    @Override
     protected void onCreate(Bundle savedInstanceState) {
+        RustDef.demoInit();
+
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
         imageView = findViewById(R.id.idIVimage);
-        encButton = findViewById(R.id.idBtnEncrypt);
-        decButton = findViewById(R.id.idBtnDecrypt);
+        Button encButton = findViewById(R.id.idBtnEncrypt);
+        Button decButton = findViewById(R.id.idBtnDecrypt);
+        Button loadButton = findViewById(R.id.idBtnLoad);
+        Button createButton = findViewById(R.id.idBtnCreate);
+        Button testButton = findViewById(R.id.idBtnTest);
 
         // Activity for encryption on button press
-        launcher = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(),result -> {
+        launcher = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
             if (result.getResultCode() == RESULT_OK) {
                 Intent data = result.getData();
+                handleActivityResult(data);
             }
-        } );
+        });
+
+        // When test button is pressed
+        testButton.setOnClickListener((v -> {
+            // TODO: START TEST HERE
+
+        }));
 
         // When encrypt button is pressed
         encButton.setOnClickListener(v -> {
@@ -91,36 +99,92 @@ public class MainActivity extends AppCompatActivity {
         // When decrypt button is pressed
         decButton.setOnClickListener(v -> {
             try {
-              // TODO:  decrypt();
-               RustDef.callRust();
+                if (decryptPicture()) {
+                    Toast.makeText(MainActivity.this, "Successful decrypt!", Toast.LENGTH_SHORT).show();
+                }
+
             } catch (Exception e) {
                 Toast.makeText(MainActivity.this, "Fail to decrypt image", Toast.LENGTH_SHORT).show();
                 e.printStackTrace();
             }
         });
+
+        //When load key button is pressed
+        loadButton.setOnClickListener(v -> {
+            try {
+                AlertDialog.Builder builder = new AlertDialog.Builder(this);
+                builder.setTitle("Name the ID of the key to load:");
+                final EditText input = new EditText(this);
+                builder.setView(input);
+                builder.setPositiveButton("OK", (dialog, which) -> {
+                    String keyId = input.getText().toString();
+                    RustDef.demoLoad(keyId);
+                    Snackbar.make(v, "The key with ID \"" + keyId + "\" was successfully loaded!", Snackbar.LENGTH_SHORT).show();
+                });
+                builder.setNegativeButton("Cancel", (dialog, which) -> dialog.cancel());
+                builder.show();
+
+
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        });
+
+        //When create key button is pressed
+        createButton.setOnClickListener(v -> {
+            try {
+                AlertDialog.Builder builder = new AlertDialog.Builder(this);
+                builder.setTitle("Name the ID of the key to create:");
+                final EditText input = new EditText(this);
+                builder.setView(input);
+                builder.setPositiveButton("OK", (dialog, which) -> {
+                    String keyId = input.getText().toString();
+                    // generate symmetric key
+                    String keyGenInfoSYM = "AES;256;GCM;NoPadding";
+                    RustDef.demoCreate(keyId, keyGenInfoSYM);
+                    Snackbar.make(v, "The key with ID \"" + keyId + "\" was successfully created!", Snackbar.LENGTH_SHORT).show();
+
+                });
+                builder.setNegativeButton("Cancel", (dialog, which) -> dialog.cancel());
+                builder.show();
+
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        });
     }
 
-    /**
-     * This method gets called upon when an Action is launched (e.g. the encrypt button is pressed)
-     * The user picks a picture out of their Media file system
-     * @param requestCode The integer request code originally supplied to
-     *                    startActivityForResult(), allowing you to identify who this
-     *                    result came from.
-     * @param resultCode The integer result code returned by the child activity
-     *                   through its setResult().
-     * @param data An Intent, which can return result data to the caller
-     *               (various data can be attached to Intent "extras").
-     *
-     */
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
-        if (requestCode == 1 && resultCode == RESULT_OK && null != data) {
+    private boolean decryptPicture() throws Exception {
+
+        ContextWrapper contextWrapper = new ContextWrapper(getApplication());
+        File photoDir = contextWrapper.getExternalFilesDir(Environment.DIRECTORY_DCIM);
+        File encFile = new File(photoDir, "encfile" + ".jpg");
+
+        byte[] bytes = toByteArray(encFile.getPath());
+
+        File decFile = new File(photoDir, "decfile.jpg");
+
+        byte[] decBytes = RustDef.demoDecrypt(bytes);
+        createFileFromByteArray(decBytes, decFile);
+
+
+        File imgFile = new File(decFile.getPath());
+        if (imgFile.exists()) {
+            Bitmap bitmap = BitmapFactory.decodeFile(imgFile.getPath());
+            imageView.setImageBitmap(bitmap);
+        }
+        return true;
+    }
+
+    private void handleActivityResult(Intent data) {
+        if (data != null) {
             Uri imgUri = data.getData();
 
             String[] filePath = {MediaStore.Images.Media.DATA};
 
+            assert imgUri != null;
             Cursor cursor = getContentResolver().query(imgUri, filePath, null, null, null);
+            assert cursor != null;
             cursor.moveToFirst();
 
             int columnIndex = cursor.getColumnIndex(filePath[0]);
@@ -130,8 +194,10 @@ public class MainActivity extends AppCompatActivity {
             cursor.close();
 
             try {
-            // TODO: Splice File into Byte array for encryption    encrypt(picPath);
-                Toast.makeText(this, "Image encrypted..", Toast.LENGTH_SHORT).show();
+                boolean didItWork = pictureEncrypt(picPath);
+                if (didItWork) {
+                    Toast.makeText(this, "Image encrypted..", Toast.LENGTH_SHORT).show();
+                }
             } catch (Exception e) {
                 e.printStackTrace();
                 Toast.makeText(this, "Fail to encrypt image : " + e, Toast.LENGTH_SHORT).show();
@@ -139,138 +205,56 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    /**
-     * This class has been made for testing. It generates a 16-Byte AES key and builds a String with all the keys information.
-     *
-     * @return the String of the generated key with all its information like length, the actual key, and the Base64 encoded version.
-     * @throws NoSuchAlgorithmException if there is no such algorithm for generating the key.
-     */
-    public String keyTestAES() {
-        SecretKey sk1;
+    private boolean pictureEncrypt(String path) {
         try {
-            sk1 = KeyGenerator.getInstance("AES").generateKey();
-        } catch (NoSuchAlgorithmException e) {
-            throw new RuntimeException(e);
-        }
-        byte[] aesKey = sk1.getEncoded();
-        return aesKey +
-                "\nAES Key length: " + aesKey.length +
-                "\nAES Key: " + Arrays.toString(aesKey) +
-                "\nAES Key Base64: " + (Base64.getEncoder().encodeToString(aesKey));
-    }
+            ContextWrapper contextWrapper = new ContextWrapper(getApplication());
+            File photoDir = contextWrapper.getExternalFilesDir(Environment.DIRECTORY_DCIM);
+            File encFile = new File(photoDir, "encfile" + ".jpg");
+            byte[] encryptedData = RustDef.demoEncrypt(toByteArray(path));
 
-    /**
-     * This method calls upon initKeyGen() to initialize and build the KeyGenerator, then generates a key in this method.
-     *
-     * @return the information (provider and location) of the generated key or just the String "ERROR" if initKeyGen() could not initialize the key.
-     * @throws Exception if anything goes wrong, it will throw an exception.
-     */
-    public String genKey() {
-        if (initKeyGen()) {
-            // Generates the key if everything went smoothly while initiating the keyGen Object
-            try {
-                Key key = keyGen.generateKey();
-                return key.toString();
-            } catch (Exception e) {
-                e.printStackTrace();
-                System.out.println("generateKey() :: " + "initKey(): "
-                        + " Error."
-                        + " Generating Key failed."
-                        + " Exception - " + e.getMessage()
-                );
-            }
-        }
-        return "ERROR";
-    }
+            createFileFromByteArray(encryptedData, encFile);
 
-    /**
-     * This method initializes the KeyGenerator for further use. It gets build with the instructions
-     * to generate AES keys, provided by the AndroidKeyStore, saved in the AndroidKeyStore,
-     * its purpose is to encrypt or decrypt only with the CBC block module as well as with the
-     * PKCS#7 encryption padding scheme.
-     *
-     * @return true or false, depending on if the KeyGenerator got initialized correctly.
-     * @throws Exception                          For catching all out of the ordinary exceptions, this should normally never happen.
-     * @throws NoSuchAlgorithmException           if the generation algorithm does not exist, and if the keystore doesnt exist
-     * @throws NoSuchProviderException            if the provider does not exist
-     * @throws InvalidAlgorithmParameterException for faulty or non existent parameters
-     * @throws CertificateException               if the keystore cannot load any certificates
-     * @throws IOException                        for in and out errors, like the keystore receiving a faulty password
-     */
-    public boolean initKeyGen() {
-        try {
-            keyStore = KeyStore.getInstance(ANDROID_KEY_STORE);
+            return true;
         } catch (Exception e) {
             e.printStackTrace();
-            System.out.println("KeyStore.getInstance() :: " + "initKey(): "
-                    + " Exception - " + e.getMessage()
-            );
+            View view = findViewById(android.R.id.content);
+            Snackbar.make(view, "encrypt failed!", Snackbar.LENGTH_SHORT).show();
             return false;
         }
+    }
+
+    private byte[] toByteArray(String path) throws IOException {
+        FileInputStream fis = new FileInputStream(path);
+        ByteArrayOutputStream bos = new ByteArrayOutputStream();
+        byte[] buf = new byte[1024];
+        int bytesRead;
+        while ((bytesRead = fis.read(buf)) != -1) {
+            bos.write(buf, 0, bytesRead);
+        }
+        byte[] bytes = bos.toByteArray();
+        fis.close();
+        bos.close();
+        return bytes;
+    }
+
+    private void createFileFromByteArray(byte[] bytes, File file) {
+        FileOutputStream fos = null;
         try {
-            // Creates the KeyGenerator with the AES algorithm
-            keyGen = KeyGenerator.getInstance(KeyProperties.KEY_ALGORITHM_AES, ANDROID_KEY_STORE);
-            // initializes the KeyGenerator with a, probably and hopefully, true random number
-            // SecureRandom secRan = new SecureRandom();
-        } catch (NoSuchAlgorithmException | NoSuchProviderException e) {
+            fos = new FileOutputStream(file);
+            fos.write(bytes);
+            Toast.makeText(this, "File created successfully at: " + file.getPath(), Toast.LENGTH_SHORT).show();
+            System.out.println("File created successfully at: " + file.getPath());
+        } catch (IOException e) {
             e.printStackTrace();
-            System.out.println("KeyGenerator.getInstance() :: " + "initKey(): "
-                    + " Error."
-                    + " Setting key algorithm failed."
-                    + " Exception - " + e.getMessage()
-            );
-            return false;
+            Toast.makeText(this, "Failed to create file at " + file.getPath() + ": " + e.getMessage(), Toast.LENGTH_SHORT).show();
+        } finally {
+            if (fos != null) {
+                try {
+                    fos.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
         }
-        try {
-            keyStore.load(null);
-            keyGen.init(new
-                    KeyGenParameterSpec.Builder(KEY_NAME,
-                    KeyProperties.PURPOSE_ENCRYPT |
-                            KeyProperties.PURPOSE_DECRYPT)
-                    .setBlockModes(KeyProperties.BLOCK_MODE_CBC)
-                    //        .setUserAuthenticationRequired(true)
-                    .setEncryptionPaddings(
-                            KeyProperties.ENCRYPTION_PADDING_PKCS7)
-                    .build());
-        } catch (NoSuchAlgorithmException |
-                 InvalidAlgorithmParameterException
-                 | CertificateException | IOException e) {
-            System.out.println("init() :: " + "initKey(): "
-                    + " Error."
-                    + " Initiating key failed."
-                    + " Exception - " + e.getMessage()
-            );
-            return false;
-        }
-        return true;
-    }
-
-    /**
-     * This method encrypts a data byte array
-     * @param data the byte array to encrypt
-     * @return the encrypted byte array
-     * @throws Exception in case the algorithm and providers are not existend, aswell as the keyname
-     */
-    public byte[] encryptData(byte[] data) throws Exception {
-        Cipher cipher = Cipher.getInstance(TRANSFORMATION);
-        keyStore.load(null);
-        SecretKey secretKey = (SecretKey) keyStore.getKey(KEY_NAME, null);
-        cipher.init(Cipher.ENCRYPT_MODE, secretKey);
-        encryptCipher = cipher.getIV();
-        return cipher.doFinal(data);
-    }
-
-    /**
-     * this method decrypts a data byte array
-     * @param encryptedData the encrypted array to decrypt
-     * @return the decrypted data byte array
-     * @throws Exception if the algorithm or provider are not existend, aswell as the key. Also throws an Exception if the IV encryptCipher is null.
-     */
-    public byte[] decryptData(byte[] encryptedData) throws Exception {
-        Cipher cipher = Cipher.getInstance(TRANSFORMATION);
-        keyStore.load(null);
-        SecretKey secretKey = (SecretKey) keyStore.getKey(KEY_NAME, null);
-        cipher.init(Cipher.DECRYPT_MODE, secretKey, new IvParameterSpec(encryptCipher));
-        return cipher.doFinal(encryptedData);
     }
 }

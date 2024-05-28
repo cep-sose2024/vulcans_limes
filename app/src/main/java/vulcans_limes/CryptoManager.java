@@ -1,282 +1,479 @@
-package vulcans_limes;
+package com.example.vulcans_limes;
 
+import android.os.Build;
 import android.security.keystore.KeyGenParameterSpec;
+import android.security.keystore.KeyInfo;
 import android.security.keystore.KeyProperties;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.security.InvalidAlgorithmParameterException;
+import java.security.InvalidKeyException;
 import java.security.Key;
+import java.security.KeyFactory;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.KeyStore;
+import java.security.KeyStoreException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
 import java.security.PrivateKey;
 import java.security.PublicKey;
+import java.security.SecureRandom;
 import java.security.Signature;
+import java.security.SignatureException;
+import java.security.UnrecoverableKeyException;
 import java.security.cert.CertificateException;
+import java.security.spec.ECGenParameterSpec;
+import java.security.spec.InvalidKeySpecException;
 import java.util.ArrayList;
 import java.util.Arrays;
 
+import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
+import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.KeyGenerator;
+import javax.crypto.NoSuchPaddingException;
 import javax.crypto.SecretKey;
+import javax.crypto.SecretKeyFactory;
+import javax.crypto.spec.GCMParameterSpec;
 import javax.crypto.spec.IvParameterSpec;
+import javax.security.auth.x500.X500Principal;
 
 public class CryptoManager {
-
-    private final String TRANSFORMATION;
-
+    // TODO: READ AND APPROVE JAVADOC
     private static final String ANDROID_KEY_STORE = "AndroidKeyStore";
-
-    private final String KEY_ALGORITHM;
-
+    private final KeyStore keyStore;
     private String KEY_NAME;
 
-    private byte[] encryptCipher;
-
-    private KeyStore keyStore;
-
-    private KeyGenerator keyGen;
-
-    private static final String SIGNATURE_ALGORITHM = "SHA256withRSA";
-
     /**
-     *  Constructor of CryptoManager. Starts initiating the KeyGenerator.
-     * @param keyAlgorithm  The asymmetric algorithm to be used with the key
-     * @param symAlgorithm  the symmetric algorithm to be used with the key
-     * @param hash          the hash algorithm to be used with the key
-     * @param keyUsages     a list of intended usages of the key
+     * Constructs a new instance of {@code CryptoManager} with the default Android KeyStore.
+     * <p>
+     * This constructor initializes the {@code CryptoManager} with the default Android KeyStore. The Android KeyStore
+     * provides a secure storage facility for cryptographic keys and certificates. Upon construction, the key store is
+     * initialized, enabling the {@code CryptoManager} to interact with cryptographic keys securely stored on the
+     * Android device. If the initialization of the key store fails, a {@link KeyStoreException} is thrown, indicating
+     * issues with the key store setup process.
+     *
+     * @throws KeyStoreException if the KeyStore Provider does not exist or fails to initialize, indicating issues with
+     *                           the key store setup process.
      */
-    public CryptoManager(String keyAlgorithm, String symAlgorithm, String hash, ArrayList<String> keyUsages) {
-        KEY_ALGORITHM = keyAlgorithm;
-        TRANSFORMATION = KEY_ALGORITHM +
-                "/" + KeyProperties.BLOCK_MODE_CBC + "/"
-                + KeyProperties.ENCRYPTION_PADDING_PKCS7;
-        initKeyGen();
+    public CryptoManager() throws KeyStoreException {
+        keyStore = KeyStore.getInstance(ANDROID_KEY_STORE);
     }
 
     /**
-     * This method initializes the KeyGenerator for further use. It gets build with the instructions
-     * to generate AES keys, provided by the AndroidKeyStore, saved in the AndroidKeyStore,
-     * its purpose is to encrypt or decrypt only with the CBC block module as well as with the
-     * PKCS#7 encryption padding scheme.
+     * Generates a new symmetric key and saves it into the Android KeyStore.
+     * <p>
+     * This method initializes a new symmetric key for encryption and decryption purposes using the specified symmetric key algorithm. The key is stored in the Android KeyStore, leveraging the platform's secure storage capabilities. The key is configured to use GCM block mode and PKCS7 encryption padding, enhancing both performance and security. The method also ensures that the key is backed by the strong box feature, adding an extra layer of security against unauthorized access.
+     * <p>
+     * Before generating the key, the method sets the key name using the provided {@code key_id}. Then, it loads the Android KeyStore and proceeds to generate the key with the specified properties. Finally, the generated key is saved in the KeyStore under the provided {@code key_id}.
      *
-     * @return true or false, depending on if the KeyGenerator got initialized correctly.
-     * @throws Exception                          For catching all out of the ordinary exceptions, this should normally never happen.
-     * @throws NoSuchAlgorithmException           if the generation algorithm does not exist, and if the keystore doesn't exist
-     * @throws NoSuchProviderException            if the provider does not exist
+     * @param key_id The unique identifier under which the key will be stored in the KeyStore.
+     * @throws CertificateException               if there is an issue loading the certificate chain.
+     * @throws IOException                        for I/O errors such as incorrect passwords.
+     * @throws NoSuchAlgorithmException           if the generation algorithm does not exist or the keystore doesn't exist.
+     * @throws NoSuchProviderException            if the provider does not exist.
+     * @throws InvalidAlgorithmParameterException for invalid or nonexistent parameters.
+     * @throws KeyStoreException                  if there is an error accessing the keystore.
      */
-    public boolean initKeyGen() {
+    public void genKey(String key_id, String keyGenInfo) throws CertificateException,
+            IOException, NoSuchAlgorithmException, NoSuchProviderException,
+            InvalidAlgorithmParameterException, KeyStoreException {
+        String[] keyGenInfoArr = keyGenInfo.split(";");
+        String KEY_ALGORITHM = keyGenInfoArr[0];
+        int KEY_SIZE = Integer.parseInt(keyGenInfoArr[1]);
+        String BLOCKING = keyGenInfoArr[2];
+        String PADDING = keyGenInfoArr[3];
+
+        KEY_NAME = key_id;
+        keyStore.load(null);
+
+        // Check if a key with the given key_id already exists
+        if (keyStore.containsAlias(KEY_NAME)) {
+            throw new KeyStoreException("Key with name " + KEY_NAME + " already exists.");
+        }
+        KeyGenerator keyGen = KeyGenerator.getInstance(KEY_ALGORITHM, ANDROID_KEY_STORE);
+        keyGen.init(new KeyGenParameterSpec.Builder(KEY_NAME,
+                KeyProperties.PURPOSE_ENCRYPT |
+                        KeyProperties.PURPOSE_DECRYPT)
+                .setKeySize(KEY_SIZE)
+                .setBlockModes(BLOCKING)
+                .setEncryptionPaddings(PADDING)
+                .setIsStrongBoxBacked(true)
+                .build());
+        keyGen.generateKey();
+    }
+
+    /**
+     * Encrypts the given data using a symmetric key stored in the Android KeyStore.
+     * <p>
+     * This method takes plaintext data as input and encrypts it using a symmetric key retrieved from the Android KeyStore.
+     * The encryption process supports both GCM and non-GCM transformations. For GCM transformations, a new initialization vector (IV)
+     * is generated using a secure random number generator, and the IV is prepended to the ciphertext. The method initializes a
+     * {@link Cipher} instance with the appropriate transformation, loads the Android KeyStore, retrieves the symmetric key, and then
+     * initializes the cipher in encryption mode with the retrieved key and the generated IV. Finally, the plaintext data is encrypted
+     * using the cipher's {@code doFinal} method, and the resulting ciphertext (with the IV prepended in the case of GCM) is returned
+     * as a byte array.
+     *
+     * @param data The plaintext data to be encrypted, represented as a byte array.
+     * @return A byte array representing the encrypted data, with the IV prepended in the case of GCM mode.
+     * @throws NoSuchPaddingException             if the requested padding scheme is not available.
+     * @throws NoSuchAlgorithmException           if the requested algorithm is not available.
+     * @throws CertificateException               if there is an issue loading the certificate chain.
+     * @throws IOException                        if there is an I/O error during the operation.
+     * @throws InvalidKeyException                if the key cannot be cast to a SecretKey.
+     * @throws UnrecoverableKeyException          if the key cannot be recovered from the keystore.
+     * @throws KeyStoreException                  if there is an error accessing the keystore.
+     * @throws IllegalBlockSizeException          if the data length is invalid for the encryption algorithm.
+     * @throws BadPaddingException                if the data could not be padded correctly for encryption.
+     * @throws InvalidKeySpecException            if the key specification is invalid.
+     * @throws NoSuchProviderException            if the requested security provider is not available.
+     * @throws InvalidAlgorithmParameterException if the algorithm parameters are invalid.
+     */
+    public byte[] encryptData(byte[] data) throws NoSuchPaddingException, NoSuchAlgorithmException,
+            CertificateException, IOException, InvalidKeyException, UnrecoverableKeyException,
+            KeyStoreException, IllegalBlockSizeException, BadPaddingException, InvalidKeySpecException,
+            NoSuchProviderException {
+
+        keyStore.load(null);
+        SecretKey secretKey = (SecretKey) keyStore.getKey(KEY_NAME, null);
+        String TRANSFORMATION = buildTransformation(secretKey);
+
+        Cipher cipher = Cipher.getInstance(TRANSFORMATION);
+        cipher.init(Cipher.ENCRYPT_MODE, secretKey);
+        byte[] iv = cipher.getIV();
+
+        if (TRANSFORMATION.contains("/GCM/")) {
+            assert iv.length == 12; // GCM standard IV size is 12 Byte
+        } else {
+            assert iv.length == 16; // CBC & CTR standard IV size is 16 Byte
+        }
+        byte[] encryptedData = cipher.doFinal(data);
+        ByteBuffer byteBuffer = ByteBuffer.allocate(iv.length + encryptedData.length);
+        byteBuffer.put(iv);
+        byteBuffer.put(encryptedData);
+        return byteBuffer.array();
+    }
+
+    /**
+     * Decrypts the given encrypted data using a symmetric key stored in the Android KeyStore.
+     * <p>
+     * This method takes encrypted data as input and decrypts it using a symmetric key retrieved from the Android KeyStore.
+     * The decryption process supports both GCM and non-GCM transformations. For GCM transformations, the initialization vector (IV)
+     * is extracted from the beginning of the encrypted data. The method initializes a {@link Cipher} instance with the appropriate
+     * transformation, loads the Android KeyStore, retrieves the symmetric key, and initializes the cipher in decryption mode with the
+     * retrieved key and the extracted IV. Finally, the encrypted data is decrypted using the cipher's {@code doFinal} method, and the
+     * original plaintext data is returned as a byte array.
+     *
+     * @param encryptedData The encrypted data to be decrypted, represented as a byte array.
+     * @return A byte array representing the decrypted data.
+     * @throws NoSuchPaddingException             if the requested padding scheme is not available.
+     * @throws NoSuchAlgorithmException           if the requested algorithm is not available.
+     * @throws CertificateException               if there is an issue loading the certificate chain.
+     * @throws IOException                        if there is an I/O error during the operation.
+     * @throws InvalidAlgorithmParameterException if the IV parameter is invalid.
+     * @throws InvalidKeyException                if the key cannot be cast to a SecretKey.
+     * @throws UnrecoverableKeyException          if the key cannot be recovered from the keystore.
+     * @throws KeyStoreException                  if there is an error accessing the keystore.
+     * @throws IllegalBlockSizeException          if the data length is invalid for the decryption algorithm.
+     * @throws BadPaddingException                if the data could not be padded correctly for decryption.
+     * @throws InvalidKeySpecException            if the key specification is invalid.
+     * @throws NoSuchProviderException            if the requested security provider is not available.
+     */
+    public byte[] decryptData(byte[] encryptedData) throws NoSuchPaddingException, NoSuchAlgorithmException,
+            CertificateException, IOException, InvalidAlgorithmParameterException, InvalidKeyException,
+            UnrecoverableKeyException, KeyStoreException, IllegalBlockSizeException, BadPaddingException,
+            InvalidKeySpecException, NoSuchProviderException {
+        keyStore.load(null);
+        SecretKey secretKey = (SecretKey) keyStore.getKey(KEY_NAME, null);
+        String TRANSFORMATION = buildTransformation(secretKey);
+        Cipher cipher = Cipher.getInstance(TRANSFORMATION);
+        ByteBuffer byteBuffer = ByteBuffer.wrap(encryptedData);
+        byte[] iv;
+        if (TRANSFORMATION.contains("/GCM/")) {
+            iv = new byte[12]; // GCM standard IV size
+            byteBuffer.get(iv);
+            encryptedData = new byte[byteBuffer.remaining()];
+            byteBuffer.get(encryptedData);
+            GCMParameterSpec gcmParameterSpec = new GCMParameterSpec(128, iv); // 128 is the recommended TagSize
+            cipher.init(Cipher.DECRYPT_MODE, secretKey, gcmParameterSpec);
+        } else {
+            iv = new byte[16]; // CBC & CTR standard IV size
+            byteBuffer.get(iv);
+            encryptedData = new byte[byteBuffer.remaining()];
+            byteBuffer.get(encryptedData);
+            cipher.init(Cipher.DECRYPT_MODE, secretKey, new IvParameterSpec(iv));
+        }
+        return cipher.doFinal(encryptedData);
+    }
+
+    /**
+     * Generates a new asymmetric key pair and saves it into the Android KeyStore.
+     * <p>
+     * This method generates a new asymmetric key pair suitable for signing and verifying digital signatures. The key pair is stored in the Android KeyStore, leveraging the platform's secure storage capabilities. The method configures the key pair generator with specific parameters, including the subject of the certificate associated with the key pair, the digest algorithms to be supported, the signature padding scheme, and whether the key is backed by the strong box feature for enhanced security. The generated key pair consists of a private key for signing and a corresponding public key for verification.
+     * <p>
+     * Before generating the key pair, the method sets the key name using the provided {@code key_id}. Then, it loads the Android KeyStore and checks if a key with the specified {@code key_id} already exists. If it does, a {@link KeyStoreException} is thrown. If not, it proceeds to generate the key pair with the specified properties and saves it in the KeyStore under the provided {@code key_id}.
+     *
+     * @param key_id The unique identifier under which the key pair will be stored in the KeyStore.
+     * @throws CertificateException               if there is an issue creating the certificate for the key pair.
+     * @throws IOException                        for I/O errors such as incorrect passwords.
+     * @throws NoSuchAlgorithmException           if the generation algorithm does not exist or the keystore doesn't exist.
+     * @throws InvalidAlgorithmParameterException for invalid or nonexistent parameters.
+     * @throws NoSuchProviderException            if the provider does not exist.
+     * @throws KeyStoreException                  if there is an error accessing the keystore or the key name is already used.
+     */
+    public void generateKeyPair(String key_id, String keyGenInfo) throws CertificateException, IOException,
+            NoSuchAlgorithmException, InvalidAlgorithmParameterException, NoSuchProviderException,
+            KeyStoreException {
+        String[] keyGenInfoArr = keyGenInfo.split(";");
+        System.out.println(Arrays.toString(keyGenInfoArr));
+        String KEY_ALGORITHM = keyGenInfoArr[0];
+        String HASH = keyGenInfoArr[2];
+
+        KEY_NAME = key_id;
+        keyStore.load(null);
+
+        // Check if a key with the given key_id already exists
+        if (keyStore.containsAlias(KEY_NAME)) {
+            throw new KeyStoreException("Key with name " + KEY_NAME + " already exists.");
+        }
+
+        KeyPairGenerator keyPairGen = KeyPairGenerator.getInstance(KEY_ALGORITHM, ANDROID_KEY_STORE);
+        if (KEY_ALGORITHM.contains("EC")) {
+            String CURVE = keyGenInfoArr[1];
+            keyPairGen.initialize(
+                    new KeyGenParameterSpec.Builder(
+                            KEY_NAME,
+                            KeyProperties.PURPOSE_SIGN)
+                            .setAlgorithmParameterSpec(new ECGenParameterSpec(CURVE))
+                            .setDigests(HASH)
+                            .build());
+
+        } else {
+            int KEY_SIZE = Integer.parseInt(keyGenInfoArr[1]);
+            String PADDING = keyGenInfoArr[3];
+            keyPairGen.initialize(new KeyGenParameterSpec.Builder(KEY_NAME,
+                    KeyProperties.PURPOSE_SIGN | KeyProperties.PURPOSE_VERIFY)
+                    .setDigests(HASH)
+                    .setSignaturePaddings(PADDING)
+                    .setIsStrongBoxBacked(true)
+                    .build());
+        }
+
+        keyPairGen.generateKeyPair();
         try {
-            keyStore = KeyStore.getInstance(ANDROID_KEY_STORE);
+            System.out.println(buildSignatureAlgorithm((PrivateKey) keyStore.getKey(KEY_NAME, null)));
         } catch (Exception e) {
             e.printStackTrace();
-            System.out.println("KeyStore.getInstance() :: " + "initKey(): "
-                    + " Exception - " + e.getMessage()
-            );
-            return false;
         }
-        try {
-            keyGen = KeyGenerator.getInstance(KEY_ALGORITHM, ANDROID_KEY_STORE);
-        } catch (NoSuchAlgorithmException | NoSuchProviderException e) {
-            e.printStackTrace();
-            System.out.println("KeyGenerator.getInstance() :: " + "initKey(): "
-                    + " Error."
-                    + " Setting key algorithm failed."
-                    + " Exception - " + e.getMessage()
-            );
-            return false;
-        }
-
-        return true;
     }
+
     /**
-     * This method builds the KeyGenerator, then generates a key to be saved inside the KeyStore
+     * Signs the given data using a private key stored in the Android KeyStore.
+     * <p>
+     * This method takes plaintext data as input and signs it using a private key retrieved from the Android KeyStore. The signing process uses a predefined signature algorithm. The method initializes a {@link Signature} instance with this algorithm, loads the Android KeyStore, retrieves the private key, and then initializes the signature object in sign mode with the retrieved private key. The plaintext data is then updated into the signature object, and finally, the data is signed using the signature object's {@code sign} method. The resulting signature is returned as a byte array.
+     * <p>
+     * Signing data is a critical part of many cryptographic operations, particularly in establishing the integrity and authenticity of data. It allows recipients to verify that the data has not been tampered with and was indeed sent by the holder of the corresponding private key.
      *
-     * @return the information (provider and location) of the generated key or just the String "ERROR" if initKeyGen() could not initialize the key.
-     * @throws NoSuchAlgorithmException           if the generation algorithm does not exist, and if the keystore doesn't exist
-     * @throws InvalidAlgorithmParameterException for faulty or non existent parameters
-     * @throws CertificateException               if the keystore cannot load any certificates
-     * @throws IOException                        for in and out errors, like the keystore receiving a faulty password
-     * @throws Exception                          if anything goes wrong, it will throw an exception.
+     * @param data The plaintext data to be signed, represented as a byte array.
+     * @return A byte array representing the signature of the data.
+     * @throws NoSuchAlgorithmException  if the requested algorithm is not available.
+     * @throws UnrecoverableKeyException if the key cannot be recovered from the keystore.
+     * @throws KeyStoreException         if there is an error accessing the keystore.
+     * @throws InvalidKeyException       if the key cannot be cast to a PrivateKey.
+     * @throws SignatureException        if the signature cannot be processed.
      */
-    public boolean genKey(String key_id) {
-        if (keyGen != null) {
-            setKEY_NAME(key_id);
-            try {
-                keyStore.load(null);
-                keyGen.init(new
-                        KeyGenParameterSpec.Builder(KEY_NAME,
-                        KeyProperties.PURPOSE_ENCRYPT |
-                                KeyProperties.PURPOSE_DECRYPT)
-                        .setBlockModes(KeyProperties.BLOCK_MODE_CBC)
-                        .setEncryptionPaddings(
-                                KeyProperties.ENCRYPTION_PADDING_PKCS7)
-                        .build());
-            } catch (NoSuchAlgorithmException |
-                     InvalidAlgorithmParameterException
-                     | CertificateException | IOException e) {
-                System.out.println("init() :: " + "initKey(): "
-                        + " Error."
-                        + " Initiating key failed."
-                        + " Exception - " + e.getMessage()
-                );
-                return false;
-            }
-            try {
-                SecretKey secretKey = keyGen.generateKey();
-                return true;
-            } catch (Exception e) {
-                e.printStackTrace();
-                System.out.println("generateKey() :: " + "initKey(): "
-                        + " Error."
-                        + " Generating Key failed."
-                        + " Exception - " + e.getMessage()
-                );
-                return false;
-            }
-        } else return false;
+    public byte[] signData(byte[] data) throws NoSuchAlgorithmException, UnrecoverableKeyException,
+            KeyStoreException, InvalidKeyException, SignatureException, InvalidKeySpecException, NoSuchProviderException {
+        Signature signature = Signature.getInstance(buildSignatureAlgorithm((PrivateKey) keyStore.getKey(KEY_NAME, null)));
+        signature.initSign((PrivateKey) keyStore.getKey(KEY_NAME, null));
+        signature.update(data);
+        return signature.sign();
     }
 
     /**
-     * This method encrypts a data byte array
-     * @param data the byte array to encrypt
-     * @return the encrypted byte array
-     * @throws Exception in case the algorithm and providers are not existent, as well as the KEY_NAME
-     */
-    public byte[] encryptData(byte[] data) {
-        try{
-            Cipher cipher = Cipher.getInstance(TRANSFORMATION);
-            keyStore.load(null);
-            SecretKey secretKey = (SecretKey) keyStore.getKey(KEY_NAME, null);
-            cipher.init(Cipher.ENCRYPT_MODE, secretKey);
-            encryptCipher = cipher.getIV();
-            return cipher.doFinal(data);
-        } catch(Exception e) {
-            e.printStackTrace();
-            return null;
-        }
-    }
-
-    /**
-     * this method decrypts a data byte array
-     * @param encryptedData the encrypted array to decrypt
-     * @return the decrypted data byte array
-     * @throws Exception if the algorithm or provider are not existent, as well as the key. Also throws an Exception if the IV encryptCipher is null.
-     */
-    public byte[] decryptData(byte[] encryptedData) throws Exception {
-        try {
-            Cipher cipher = Cipher.getInstance(TRANSFORMATION);
-            keyStore.load(null);
-            SecretKey secretKey = (SecretKey) keyStore.getKey(KEY_NAME, null);
-            cipher.init(Cipher.DECRYPT_MODE, secretKey, new IvParameterSpec(encryptCipher));
-            return cipher.doFinal(encryptedData);
-        } catch(Exception e) {
-            e.printStackTrace();
-            return null;
-        }
-    }
-
-    /**
-     * Hashes the given string data using the SHA-256 algorithm.
+     * Verifies the signature of the given data using a public key stored in the Android KeyStore.
+     * <p>
+     * This method verifies the signature of the given data against a known signature. The verification process
+     * uses a predefined signature algorithm. The method initializes a {@link Signature} instance with this algorithm,
+     * loads the Android KeyStore, retrieves the public key associated with the known signature, and then initializes
+     * the signature object in verify mode with the retrieved public key. The plaintext data is then updated into the
+     * signature object, and finally, the signature is verified using the signature object's {@code verify} method with
+     * the provided signed bytes. The method returns true if the signature is valid, indicating that the data has not
+     * been tampered with and was indeed signed by the holder of the corresponding private key; otherwise, it returns false.
      *
-     * @param data The input string data to be hashed.
-     * @return A byte array containing the SHA-256 hash of the data.
-     * @throws Exception If an error occurs during hashing.
-     */
-    public byte[] hashData(byte[] data) {
-        try {
-            MessageDigest messageDigest = MessageDigest.getInstance("SHA-256");
-            //System.out.println(bytesToHex((messageDigest.digest(data.getBytes()))));
-            return messageDigest.digest(data);
-        } catch(Exception e) {
-            e.printStackTrace();
-            return null;
-        }
-
-    }
-
-    /**
-     * Signs the given string data using the private key from the provided key pair and the specified signature algorithm.
-     *
-     * @param data    The input string data to be signed.
-     * @return A byte array containing the signature of the data.
-     * @throws Exception If an error occurs during signing.
-     */
-
-    // wir geben rein ein (byte[])
-    public byte[] signData(byte[] data) {
-        try {
-            Signature signature = Signature.getInstance(SIGNATURE_ALGORITHM);
-            PrivateKey privateKey= (PrivateKey) keyStore.getKey(KEY_NAME, null);
-            signature.initSign(privateKey);
-            signature.update(data);
-            System.out.println(Arrays.toString(signature.sign()));
-            return signature.sign();
-        } catch(Exception e) {
-            e.printStackTrace();
-            return null;
-        }
-
-    }
-
-
-    /**
-     * Generates a new RSA key pair with a key size of 2048 bits.
-     *
-     * @return The generated KeyPair object.
-     * @throws Exception If an error occurs during key generation.
-     */
-    public KeyPair generateKeyPair() {
-        try{
-            // TODO: KeyStore KeyPair handling
-            // TODO: Fit KeyPairGenerator with builder, like in initKeyGen
-            KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("RSA", ANDROID_KEY_STORE);
-            keyPairGenerator.initialize(2048);
-            return keyPairGenerator.generateKeyPair();
-        } catch(Exception e) {
-            e.printStackTrace();
-            return null;
-        }
-    }
-
-    /**
-     * Verifies if the given signature is valid for the provided data and public key.
-     *
-     * @param data      The input string data to be verified.
-     * @param signature The byte array containing the signature to be verified.
+     * @param data        The plaintext data whose signature is to be verified, represented as a byte array.
+     * @param signedBytes The signature of the data to be verified, represented as a byte array.
      * @return True if the signature is valid, false otherwise.
-     * @throws Exception If an error occurs during verification.
+     * @throws SignatureException        if the signature cannot be processed.
+     * @throws InvalidKeyException       if the key cannot be cast to a PublicKey.
+     * @throws KeyStoreException         if there is an error accessing the keystore.
+     * @throws NoSuchAlgorithmException  if the requested algorithm is not available.
+     * @throws UnrecoverableKeyException if the key cannot be recovered from the keystore.
+     * @throws InvalidKeySpecException   if the key specification is invalid or cannot be retrieved.
+     * @throws NoSuchProviderException   if the provider is not available.
      */
-
-    // wir geben rein (byte[] data,byte[] signature) PublicKey wird in der methode gehandelt
-    // PublicKey wird in der Methode über KeyName
-    public boolean verifySignature(byte[] data, byte[] signature) {
-        try {
-            Signature verificationSignature = Signature.getInstance(SIGNATURE_ALGORITHM);
-            PublicKey publicKey = (PublicKey) keyStore.getKey(KEY_NAME, null);
-            verificationSignature.initVerify(publicKey);
-            verificationSignature.update(data);
-            return verificationSignature.verify(signature);
-        } catch (Exception e) {
-            e.printStackTrace();
-            return false;
-        }
+    public boolean verifySignature(byte[] data, byte[] signedBytes) throws SignatureException, InvalidKeyException,
+            KeyStoreException, NoSuchAlgorithmException, UnrecoverableKeyException, InvalidKeySpecException, NoSuchProviderException {
+        Signature verificationSignature = Signature.getInstance(buildSignatureAlgorithm((PrivateKey) keyStore.getKey(KEY_NAME, null)));
+        verificationSignature.initVerify(keyStore.getCertificate(KEY_NAME).getPublicKey());
+        verificationSignature.update(data);
+        return verificationSignature.verify(signedBytes);
     }
 
-    public Byte[] toByte(byte[] bytesPrim) {
+    /**
+     * Converts a primitive byte array to an array of Byte objects.
+     * <p>
+     * This method takes a primitive byte array as input and returns an array of Byte objects.
+     * Each element in the input array is wrapped in a Byte object.
+     *
+     * @param bytesPrim The primitive byte array to be converted.
+     * @return An array of Byte objects corresponding to the elements of the input byte array.
+     * @throws NullPointerException if the input byte array is null.
+     */
+    public Byte[] toByte(byte[] bytesPrim) { // TODO: still needed?
+        if (bytesPrim == null) {
+            throw new NullPointerException("Input byte array cannot be null.");
+        }
         Byte[] bytes = new Byte[bytesPrim.length];
         Arrays.setAll(bytes, n -> bytesPrim[n]);
         return bytes;
     }
 
     /**
-     * this method sets KEY_NAME to the key_id for further use (e.g. before generating/loading a key with the given key_id)
-     * @param key_id    unique identifier of a key
+     * Sets the `KEY_NAME` to the provided key identifier.
+     * <p>
+     * This method assigns the `KEY_NAME` field with the given `key_id`.
+     * This is typically used before loading a key with the specified identifier.
+     * It ensures that the `KEY_NAME` is set correctly for subsequent cryptographic operations
+     * involving the specified key.
+     *
+     * @param key_id The unique identifier of a key to be set as `KEY_NAME`.
      */
-    public void setKEY_NAME(String key_id) {
-        KEY_NAME = key_id;
+    public void loadKey(String key_id) throws KeyStoreException, UnrecoverableKeyException {
+        if (keyStore.containsAlias(key_id)) KEY_NAME = key_id;
+        else
+            throw new UnrecoverableKeyException("The key alias '" + key_id + "' does not exist in the KeyStore.");
+    }
+
+    /**
+     * Constructs the transformation string for a given key, which is used to initialize a {@link Cipher} instance.
+     * <p>
+     * This method loads the Android KeyStore and retrieves key-specific metadata using {@link KeyInfo}. From those it builds a transformation string based on the key's algorithm, block modes, and padding schemes. The transformation
+     * string follows the format "algorithm/block-mode/padding". It supports both symmetric keys ({@link SecretKey}) and asymmetric keys
+     * ({@link PrivateKey}). For symmetric keys, it retrieves encryption paddings; for asymmetric keys, it retrieves signature paddings.
+     *
+     * @param key The key for which the transformation string is to be built. It can be either a {@link SecretKey} or a {@link PrivateKey}.
+     * @return A string representing the transformation in the format "algorithm/mode/padding".
+     * @throws NullPointerException     if the key or any retrieved metadata is null.
+     * @throws CertificateException     if there is an issue with the certificate chain.
+     * @throws IOException              if there is an I/O error during the operation.
+     * @throws NoSuchAlgorithmException if the requested algorithm is not available.
+     * @throws InvalidKeySpecException  if the key specification is invalid.
+     * @throws NoSuchProviderException  if the requested security provider is not available.
+     * @throws KeyStoreException        if there is an error accessing the keystore or if the key type is unsupported.
+     */
+    private String buildTransformation(Key key) throws NullPointerException, CertificateException,
+            IOException, NoSuchAlgorithmException, InvalidKeySpecException, NoSuchProviderException, KeyStoreException {
+        keyStore.load(null);
+        KeyInfo keyInfo;
+        String keyAlgorithm = key.getAlgorithm();
+        String keyPadding;
+
+        if (key instanceof SecretKey) {
+            SecretKey secretKey = (SecretKey) key;
+            SecretKeyFactory factory = SecretKeyFactory.getInstance(secretKey.getAlgorithm(), ANDROID_KEY_STORE);
+            keyInfo = (KeyInfo) factory.getKeySpec(secretKey, KeyInfo.class);
+            keyPadding = keyInfo.getEncryptionPaddings()[0];
+        } else if (key instanceof PrivateKey) {
+            PrivateKey privateKey = (PrivateKey) key;
+            KeyFactory factory = KeyFactory.getInstance(privateKey.getAlgorithm(), ANDROID_KEY_STORE);
+            keyInfo = factory.getKeySpec(privateKey, KeyInfo.class);
+            keyPadding = keyInfo.getSignaturePaddings()[0];
+        } else {
+            throw new KeyStoreException("Unsupported key type");
+        }
+        return keyAlgorithm + "/" + keyInfo.getBlockModes()[0] + "/" + keyPadding;
+    }
+
+    /**
+     * Constructs the signature algorithm string based on the provided private key.
+     * <p>
+     * This method retrieves metadata from the given {@link PrivateKey} to dynamically construct
+     * the signature algorithm string. It uses the {@link KeyFactory} to obtain the {@link KeyInfo}
+     * of the private key, which includes details such as the digest algorithms supported by the key.
+     * The method then combines the hash algorithm and the private key algorithm to form the signature
+     * algorithm string.
+     * </p>
+     *
+     * @param privateKey The {@link PrivateKey} for which the signature algorithm string is to be constructed.
+     * @return A string representing the signature algorithm, which combines the hash algorithm and the key algorithm.
+     * @throws NoSuchAlgorithmException If the algorithm of the private key is not available.
+     * @throws NoSuchProviderException  If the specified provider is not available.
+     * @throws InvalidKeySpecException  If the key specification is invalid or cannot be retrieved.
+     */
+    private String buildSignatureAlgorithm(PrivateKey privateKey) throws NoSuchAlgorithmException, NoSuchProviderException,
+            InvalidKeySpecException {
+        KeyFactory keyFactory = KeyFactory.getInstance(privateKey.getAlgorithm(), ANDROID_KEY_STORE);
+        KeyInfo keyInfo = keyFactory.getKeySpec(privateKey, KeyInfo.class);
+        String hashAlgorithm = keyInfo.getDigests()[0].replaceAll("-", "");
+        String algorithm = privateKey.getAlgorithm();
+        if (algorithm.contains("EC")) {
+            algorithm += "DSA";
+        }
+        return hashAlgorithm + "with" + algorithm;
+    }
+
+    /**
+     * Prints detailed information about the currently loaded key.
+     * <p>
+     * This method retrieves and displays information about a key stored in the Android KeyStore.
+     * It handles both {@link SecretKey} (symmetric keys) and {@link KeyPair} (asymmetric keys).
+     * The information displayed includes the key ID, block modes, security level, origin, and purpose
+     * for {@link SecretKey}. For {@link KeyPair}, it displays the key algorithm and format.
+     * <p>
+     * Note that this method should be used for testing or demonstration purposes and will be removed
+     * in the release version.
+     *
+     * @throws NullPointerException      if the specified key does not exist.
+     * @throws CertificateException      if there is an issue loading the certificate chain.
+     * @throws IOException               if there is an I/O error during the operation.
+     * @throws NoSuchAlgorithmException  if the requested algorithm is not available.
+     * @throws InvalidKeySpecException   if the key specification is invalid.
+     * @throws NoSuchProviderException   if the specified provider is not available.
+     * @throws UnrecoverableKeyException if the key cannot be recovered from the keystore.
+     * @throws KeyStoreException         if there is an error accessing the keystore.
+     */ // TODO: DELETE BEFORE RELEASE
+    public void showKeyInfo() throws NullPointerException, CertificateException, IOException,
+            NoSuchAlgorithmException, InvalidKeySpecException, NoSuchProviderException, UnrecoverableKeyException,
+            KeyStoreException {
+        keyStore.load(null);
+        Key key = keyStore.getKey(KEY_NAME, null);
+        KeyInfo keyInfo;
+
+        if (key instanceof SecretKey) {
+            SecretKey secretKey = (SecretKey) key;
+            SecretKeyFactory factory = SecretKeyFactory.getInstance(secretKey.getAlgorithm(), ANDROID_KEY_STORE);
+            keyInfo = (KeyInfo) factory.getKeySpec(secretKey, KeyInfo.class);
+            System.out.println("Key algorithm: " + secretKey.getAlgorithm());
+        } else if (key instanceof PrivateKey) {
+            KeyPair keyPair = new KeyPair(keyStore.getCertificate(KEY_NAME).getPublicKey(), (PrivateKey) key);
+            KeyFactory factory = KeyFactory.getInstance(keyPair.getPrivate().getAlgorithm(), ANDROID_KEY_STORE);
+            keyInfo = factory.getKeySpec(keyPair.getPrivate(), KeyInfo.class);
+            System.out.println("Key algorithm: " + keyPair.getPrivate().getAlgorithm());
+        } else {
+            throw new KeyStoreException("Unsupported key type");
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            System.out.println("KeyID: " + keyInfo.getKeystoreAlias() +
+                    "\nKey padding: " + Arrays.toString(keyInfo.getEncryptionPaddings()) +
+                    "\nKey size: " + keyInfo.getKeySize() +
+                    "\nBlock modes: " + Arrays.toString(keyInfo.getBlockModes()) +
+                    "\nSecurity-Level: " + keyInfo.getSecurityLevel() +
+                    "\nOrigin: " + keyInfo.getOrigin() +
+                    "\nPurpose: " + keyInfo.getPurposes());
+        }
     }
 }

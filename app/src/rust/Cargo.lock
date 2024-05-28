@@ -290,6 +290,7 @@ dependencies = [
  "anyhow",
  "async-std",
  "futures",
+    "jni 0.20.0",
  "once_cell",
  "robusta_jni",
  "serde",

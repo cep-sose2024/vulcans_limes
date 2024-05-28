@@ -17,7 +17,7 @@
         android:theme="@style/Theme.KeystoreStuffs"
         tools:targetApi="31">
         <activity
-            android:name="vulcans_limes.MainActivity"
+            android:name="com.example.vulcans_limes.MainActivity"
             android:exported="true"
             android:theme="@style/Theme.KeystoreStuffs">
             <intent-filter>

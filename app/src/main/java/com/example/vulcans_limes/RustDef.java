@@ -142,7 +142,7 @@ class RustDef {
      * @throws KeyStoreException         if there is an error accessing the keystore, such as a failure to load
      *                                   or initialize the keystore.
      */
-    static void load_key(String key_id) throws UnrecoverableKeyException, KeyStoreException {
+    static void load_key(String key_id) throws UnrecoverableKeyException, KeyStoreException, CertificateException, IOException, NoSuchAlgorithmException {
         cryptoManager.loadKey(key_id);
     }
 

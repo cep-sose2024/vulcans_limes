@@ -1,8 +1,12 @@
+extern crate android_logger;
+#[macro_use]
+extern crate log;
+
 use robusta_jni::bridge;
 
 #[bridge]
 pub mod jni {
-    extern crate crypto_layer;
+    use android_logger::Config;
     use crypto_layer::common::crypto::algorithms::encryption::BlockCiphers::Aes;
     use crypto_layer::common::crypto::algorithms::encryption::SymmetricMode;
     use crypto_layer::common::crypto::algorithms::KeyBits::Bits128;
@@ -10,6 +14,7 @@ pub mod jni {
     use crypto_layer::SecModules;
     use crypto_layer::tpm::android::knox::KnoxConfig;
     use crypto_layer::tpm::core::instance::{AndroidTpmType, TpmType};
+    use log::{debug, LevelFilter};
     #[allow(unused_imports)]
     use robusta_jni::bridge;
     use robusta_jni::convert::{IntoJavaValue, Signature, TryFromJavaValue, TryIntoJavaValue};
@@ -18,11 +23,13 @@ pub mod jni {
     use robusta_jni::jni::objects::{AutoLocal, JValue};
     use robusta_jni::jni::sys::jbyteArray;
 
+    extern crate crypto_layer;
+
     #[derive(Signature, TryIntoJavaValue, IntoJavaValue, TryFromJavaValue)]
     #[package(com.example.vulcans_1limes)]
     pub struct RustDef<'env: 'borrow, 'borrow> {
         #[instance]
-        pub raw: AutoLocal<'env, 'borrow>,
+        pub raw: AutoLocal<'env, 'borrow>
     }
 
     /// This Implementation provides the method declarations that are the interface for the JNI.
@@ -64,34 +71,45 @@ pub mod jni {
         ///Proof of concept method - shows callback from Rust to a java method
         ///     ONLY USE FOR TESTING
         pub extern "jni" fn callRust(_environment: &JNIEnv) -> String {
-            return String::from("empty method")
+            return String::from("empty method");
         }
 
         pub extern "jni" fn demoCreate(environment: &JNIEnv, key_id: String, _key_gen_info: String) -> () {
             // Self::create_key(environment, key_id, key_gen_info).unwrap();
             // let _ = Self::check_java_exceptions(environment);
-            println!("Here");
-            let instance = SecModules::get_instance("test_key".to_owned(),
-                                                    SecurityModule::Tpm(TpmType::Android(AndroidTpmType::Knox)),
-                                                    None).unwrap();
+            debug!("Start create");
+            let mut module = SecModules::get_instance(
+                "test_key".to_owned(),
+                SecurityModule::Tpm(TpmType::Android(AndroidTpmType::Knox)),
+                None).unwrap().lock().unwrap();
+
+            debug!("created provider");
             let config = KnoxConfig::new(None,
                                          Some(Aes(SymmetricMode::Cbc, Bits128)),
                                          environment.get_java_vm().unwrap());
-            instance
-                .lock()
-                .unwrap()
+            debug!("created config");
+
+            module
                 .initialize_module()
                 .expect("Failed to initialize module");
+            debug!("init module done");
             let _ = Self::check_java_exceptions(environment);
-            instance
-                .lock()
-                .unwrap()
+            module
                 .create_key(&*key_id, config)
                 .expect("Failed to create RSA key");
+            debug!("create key done");
         }
 
         pub extern "jni" fn demoInit(environment: &JNIEnv) -> () {
-            let _ = Self::initialize_module(environment);
+            android_logger::init_once(
+                Config::default().with_max_level(LevelFilter::Trace),
+            );
+            debug!("Start init");
+            let mut module = SecModules::get_instance(
+                "test_key".to_owned(),
+                SecurityModule::Tpm(TpmType::Android(AndroidTpmType::Knox)),
+                None).unwrap().lock().unwrap();
+            let _ = module.initialize_module();
             let _ = Self::check_java_exceptions(environment);
         }
 
@@ -114,7 +132,7 @@ pub mod jni {
             return match result {
                 Ok(res) => { res.into_boxed_slice() }
                 Err(_) => { Vec::new().into_boxed_slice() }
-            }
+            };
         }
 
         pub extern "jni" fn demoSign(environment: &JNIEnv, data: Box<[u8]>) -> Box<[u8]> {
@@ -157,7 +175,6 @@ pub mod jni {
         /// `key_id` - String that uniquely identifies the key so that it can be retrieved later
         pub fn create_key(environment: &JNIEnv, key_id: String, key_gen_info: String)
             -> Result<(), String> {
-
             let result = environment.call_static_method(
                 "com/example/vulcans_limes/RustDef",
                 "create_key",
@@ -311,7 +328,7 @@ pub mod jni {
                             )
                         }
                     }
-                },
+                }
                 Err(e) => {
                     match e {
                         Error::WrongJValueType(_, _) => {
@@ -417,7 +434,7 @@ pub mod jni {
                             )
                         }
                     }
-                },
+                }
                 Err(e) => {
                     match e {
                         Error::WrongJValueType(_, _) => {
@@ -471,7 +488,7 @@ pub mod jni {
                             )
                         }
                     }
-                },
+                }
                 Err(e) => {
                     match e {
                         Error::WrongJValueType(_, _) => {

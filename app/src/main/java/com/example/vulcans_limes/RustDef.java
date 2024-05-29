@@ -82,7 +82,7 @@ class RustDef {
 
     static native byte[] demoSign(byte[] data);
 
-    static native boolean demoVerify(byte[] data);
+    static native boolean demoVerify(byte[] data, byte[] signed_data);
 
     static native void demoLoad(String key_id);
 
@@ -120,7 +120,8 @@ class RustDef {
      */
     static void create_key(String key_id, String keyGenInfo) throws InvalidAlgorithmParameterException, CertificateException,
             IOException, NoSuchAlgorithmException, KeyStoreException, NoSuchProviderException {
-        if (keyGenInfo.contains("RSA")) cryptoManager.generateKeyPair(key_id, keyGenInfo);
+        if (keyGenInfo.contains("RSA") || keyGenInfo.contains("EC"))
+            cryptoManager.generateKeyPair(key_id, keyGenInfo);
         else cryptoManager.genKey(key_id, keyGenInfo);
     }
 
@@ -265,4 +266,5 @@ class RustDef {
             NoSuchProviderException {
         return cryptoManager.decryptData(encrypted_data);
     }
+
 }

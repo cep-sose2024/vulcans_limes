@@ -347,7 +347,8 @@ public class CryptoManager {
      *
      * @param key_id The unique identifier of a key to be set as `KEY_NAME`.
      */
-    public void loadKey(String key_id) throws KeyStoreException, UnrecoverableKeyException {
+    public void loadKey(String key_id) throws KeyStoreException, UnrecoverableKeyException, CertificateException, IOException, NoSuchAlgorithmException {
+        keyStore.load(null);
         if (keyStore.containsAlias(key_id)) KEY_NAME = key_id;
         else
             throw new UnrecoverableKeyException("The key alias '" + key_id + "' does not exist in the KeyStore.");

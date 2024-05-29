@@ -10,7 +10,6 @@ pub mod jni {
     use robusta_jni::jni::objects::{AutoLocal, JValue};
     use robusta_jni::jni::sys::jbyteArray;
 
-    use crate::SecurityModuleError;
 
     #[derive(Signature, TryIntoJavaValue, IntoJavaValue, TryFromJavaValue)]
     #[package(com.example.vulcans_1limes)]
@@ -60,23 +59,23 @@ pub mod jni {
         pub extern "jni" fn callRust(environment: &JNIEnv) -> String {
 
             //example usage of a java method call from rust
-            Self::create_key(environment, String::from("moin")).unwrap();
+            //Self::create_key(environment, String::from("moin")).unwrap();
             String::from("Success")
         }
 
         ///Demo method used to call functions in Rust from the Java app while testing
-        pub extern "jni" fn demoCreate(environment: &JNIEnv, key_id: String) -> () {
-            Self::create_key(environment, key_id).unwrap();
+        pub extern "jni" fn demoCreate(environment: &JNIEnv, key_id: String, key_gen_info: String) -> () {
+            Self::create_key(environment, key_id, key_gen_info).unwrap();
+        }
+
+        pub extern "jni" fn demoLoad(environment: &JNIEnv, key_id: String) -> () {
+            Self::load_key(environment, key_id).unwrap();
         }
 
         ///Demo method used to call functions in Rust from the Java app while testing
-        pub extern "jni" fn demoInit(environment: &JNIEnv,
-                                     key_algorithm: String,
-                                     sym_algorithm: String,
-                                     hash: String,
-                                     key_usages: String)
+        pub extern "jni" fn demoInit(environment: &JNIEnv)
                                      -> () {
-            let _ = Self::initialize_module(environment, key_algorithm, sym_algorithm, hash, key_usages);
+            let _ = Self::initialize_module(environment);
         }
 
         ///Demo method used to call functions in Rust from the Java app while testing
@@ -135,12 +134,13 @@ pub mod jni {
         ///
         /// # Arguments
         /// `key_id` - String that uniquely identifies the key so that it can be retrieved later
-        pub fn create_key(environment: &JNIEnv, key_id: String) -> Result<(), SecurityModuleError> {
+        pub fn create_key(environment: &JNIEnv, key_id: String, key_gen_info: String) -> Result<(), String> {
             let result = environment.call_static_method(
                 "com/example/vulcans_limes/RustDef",
                 "create_key",
-                "(Ljava/lang/String;)V",
-                &[JValue::from(environment.new_string(key_id).unwrap())],
+                "(Ljava/lang/String;Ljava/lang/String;)V",
+                &[JValue::from(environment.new_string(key_id).unwrap()),
+                    JValue::from(environment.new_string(key_gen_info).unwrap())],
             );
             let _ = Self::check_java_exceptions(&environment);
             return match result {
@@ -148,20 +148,20 @@ pub mod jni {
                 Err(e) => {
                     match e {
                         Error::WrongJValueType(_, _) => {
-                            Err(SecurityModuleError::InitializationError(
+                            Err(
                                 String::from("Failed to create key: Wrong Arguments passed")
-                            ))
+                            )
                         }
                         Error::JavaException => {
-                            Err(SecurityModuleError::InitializationError(
+                            Err(
                                 String::from("Failed to create key: Some exception occurred in Java.
                                              Check console for details")
-                            ))
+                            )
                         }
                         _ => {
-                            Err(SecurityModuleError::InitializationError(
+                            Err(
                                 String::from("Failed to call Java methods")
-                            ))
+                            )
                         }
                     }
                 }
@@ -175,10 +175,10 @@ pub mod jni {
         ///
         /// # Arguments
         /// `key_id` - String that uniquely identifies the key so that it can be retrieved later
-        pub fn load_key(environment: &JNIEnv, key_id: String) -> Result<(), SecurityModuleError> {
+        pub fn load_key(environment: &JNIEnv, key_id: String) -> Result<(), String> {
             let result = environment.call_static_method(
                 "com/example/vulcans_limes/RustDef",
-                "create_key",
+                "load_key",
                 "(Ljava/lang/String;)V",
                 &[JValue::from(environment.new_string(key_id).unwrap())],
             );
@@ -188,20 +188,20 @@ pub mod jni {
                 Err(e) => {
                     match e {
                         Error::WrongJValueType(_, _) => {
-                            Err(SecurityModuleError::InitializationError(
+                            Err(
                                 String::from("Failed to load key: Wrong Arguments passed")
-                            ))
+                            )
                         }
                         Error::JavaException => {
-                            Err(SecurityModuleError::InitializationError(
+                            Err(
                                 String::from("Failed to load key: Some exception occurred in Java.
                                              Check console for details")
-                            ))
+                            )
                         }
                         _ => {
-                            Err(SecurityModuleError::InitializationError(
+                            Err(
                                 String::from("Failed to call Java methods")
-                            ))
+                            )
                         }
                     }
                 }
@@ -227,20 +227,13 @@ pub mod jni {
         /// A `Result` that, on success, contains `()`,
         /// indicating that the module was initialized successfully.
         /// On failure, it returns an Error
-        pub fn initialize_module(environment: &JNIEnv,
-                                 key_algorithm: String,
-                                 sym_algorithm: String,
-                                 hash: String,
-                                 key_usages: String)
-                                 -> Result<(), SecurityModuleError> {
+        pub fn initialize_module(environment: &JNIEnv)
+                                 -> Result<(), String> {
             let result = environment.call_static_method(
                 "com/example/vulcans_limes/RustDef",
                 "initialize_module",
-                "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V",
-                &[JValue::from(environment.new_string(key_algorithm).unwrap()),
-                    JValue::from(environment.new_string(sym_algorithm).unwrap()),
-                    JValue::from(environment.new_string(hash).unwrap()),
-                    JValue::from(environment.new_string(key_usages).unwrap())],
+                "()V",
+                &[],
             );
             let _ = Self::check_java_exceptions(&environment);
             return match result {
@@ -248,20 +241,20 @@ pub mod jni {
                 Err(e) => {
                     match e {
                         Error::WrongJValueType(_, _) => {
-                            Err(SecurityModuleError::InitializationError(
+                            Err(
                                 String::from("Failed to initialise Module: Wrong Arguments passed")
-                            ))
+                            )
                         }
                         Error::JavaException => {
-                            Err(SecurityModuleError::InitializationError(
+                            Err(
                                 String::from("Failed to initialise Module: Some exception occurred in Java.
                                              Check console for details")
-                            ))
+                            )
                         }
                         _ => {
-                            Err(SecurityModuleError::InitializationError(
+                            Err(
                                 String::from("Failed to call Java methods")
-                            ))
+                            )
                         }
                     }
                 }
@@ -278,7 +271,7 @@ pub mod jni {
         ///
         /// A `Result` containing the signature as a `Vec<u8>` on success,
         /// or an `Error` on failure.
-        fn sign_data(environment: &JNIEnv, data: &[u8]) -> Result<Vec<u8>, SecurityModuleError> {
+        fn sign_data(environment: &JNIEnv, data: &[u8]) -> Result<Vec<u8>, String> {
             let result = environment.call_static_method(
                 "com/example/vulcans_limes/RustDef",
                 "sign_data",
@@ -292,29 +285,29 @@ pub mod jni {
                     match vector {
                         Ok(v) => { Ok(v) }
                         Err(_) => {
-                            Err(SecurityModuleError::SigningError(
+                            Err(
                                 String::from("Failed to convert return type to rust-compatible format")
-                            ))
+                            )
                         }
                     }
-                },
+                }
                 Err(e) => {
                     match e {
                         Error::WrongJValueType(_, _) => {
-                            Err(SecurityModuleError::SigningError(
+                            Err(
                                 String::from("Failed to sign data: Wrong Arguments passed")
-                            ))
+                            )
                         }
                         Error::JavaException => {
-                            Err(SecurityModuleError::SigningError(
+                            Err(
                                 String::from("Failed to sign data: Some exception occurred in Java.
                                              Check console for details")
-                            ))
+                            )
                         }
                         _ => {
-                            Err(SecurityModuleError::SigningError(
+                            Err(
                                 String::from("Failed to call Java methods")
-                            ))
+                            )
                         }
                     }
                 }
@@ -332,7 +325,7 @@ pub mod jni {
         ///
         /// A `Result` containing a `bool` signifying whether the signature is valid,
         /// or an `Error` on failure to determine the validity.
-        fn verify_signature(environment: &JNIEnv, data: &[u8], signature: &[u8]) -> Result<bool, SecurityModuleError> {
+        fn verify_signature(environment: &JNIEnv, data: &[u8], signature: &[u8]) -> Result<bool, String> {
             let result = environment.call_static_method(
                 "com/example/vulcans_limes/RustDef",
                 "verify_signature",
@@ -346,29 +339,29 @@ pub mod jni {
                     match res.z() {
                         Ok(value) => { Ok(value) }
                         Err(_) => {
-                            Err(SecurityModuleError::SignatureVerificationError(
+                            Err(
                                 String::from("Failed to convert return type to rust-compatible format")
-                            ))
+                            )
                         }
                     }
                 }
                 Err(e) => {
                     match e {
                         Error::WrongJValueType(_, _) => {
-                            Err(SecurityModuleError::SignatureVerificationError(
+                            Err(
                                 String::from("Failed to verify signature: Wrong Arguments passed")
-                            ))
+                            )
                         }
                         Error::JavaException => {
-                            Err(SecurityModuleError::SignatureVerificationError(
+                            Err(
                                 String::from("Failed to verify signature: Some exception occurred in Java.
                                              Check console for details")
-                            ))
+                            )
                         }
                         _ => {
-                            Err(SecurityModuleError::SignatureVerificationError(
+                            Err(
                                 String::from("Failed to call Java methods")
-                            ))
+                            )
                         }
                     }
                 }
@@ -385,7 +378,7 @@ pub mod jni {
         ///
         /// A `Result` containing the encrypted data as a `Vec<u8>` on success,
         /// or an `Error` on failure.
-        fn encrypt_data(environment: &JNIEnv, data: &[u8]) -> Result<Vec<u8>, SecurityModuleError> {
+        fn encrypt_data(environment: &JNIEnv, data: &[u8]) -> Result<Vec<u8>, String> {
             let result = environment.call_static_method(
                 "com/example/vulcans_limes/RustDef",
                 "encrypt_data",
@@ -399,29 +392,29 @@ pub mod jni {
                     match vector {
                         Ok(v) => { Ok(v) }
                         Err(_) => {
-                            Err(SecurityModuleError::EncryptionError(
+                            Err(
                                 String::from("Failed to convert return type to rust-compatible format")
-                            ))
+                            )
                         }
                     }
-                },
+                }
                 Err(e) => {
                     match e {
                         Error::WrongJValueType(_, _) => {
-                            Err(SecurityModuleError::EncryptionError(
+                            Err(
                                 String::from("Failed to encrypt data: Wrong Arguments passed")
-                            ))
+                            )
                         }
                         Error::JavaException => {
-                            Err(SecurityModuleError::EncryptionError(
+                            Err(
                                 String::from("Failed to encrypt data: Some exception occurred in Java.
                                              Check console for details")
-                            ))
+                            )
                         }
                         _ => {
-                            Err(SecurityModuleError::EncryptionError(
+                            Err(
                                 String::from("Failed to call Java methods")
-                            ))
+                            )
                         }
                     }
                 }
@@ -439,7 +432,7 @@ pub mod jni {
         ///
         /// A `Result` containing the Decrypted data as a `Vec<u8>` on success,
         /// or an `Error` on failure.
-        fn decrypt_data(environment: &JNIEnv, data: &[u8]) -> Result<Vec<u8>, SecurityModuleError> {
+        fn decrypt_data(environment: &JNIEnv, data: &[u8]) -> Result<Vec<u8>, String> {
             let result = environment.call_static_method(
                 "com/example/vulcans_limes/RustDef",
                 "decrypt_data",
@@ -453,29 +446,29 @@ pub mod jni {
                     match vector {
                         Ok(v) => { Ok(v) }
                         Err(_) => {
-                            Err(SecurityModuleError::DecryptionError(
+                            Err(
                                 String::from("Failed to convert return type to rust-compatible format")
-                            ))
+                            )
                         }
                     }
-                },
+                }
                 Err(e) => {
                     match e {
                         Error::WrongJValueType(_, _) => {
-                            Err(SecurityModuleError::DecryptionError(
+                            Err(
                                 String::from("Failed to decrypt data: Wrong Arguments passed")
-                            ))
+                            )
                         }
                         Error::JavaException => {
-                            Err(SecurityModuleError::DecryptionError(
+                            Err(
                                 String::from("Failed to decrypt data: Some exception occurred in Java.
                                              Check console for details")
-                            ))
+                            )
                         }
                         _ => {
-                            Err(SecurityModuleError::DecryptionError(
+                            Err(
                                 String::from("Failed to call Java methods")
-                            ))
+                            )
                         }
                     }
                 }

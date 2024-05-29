@@ -27,14 +27,6 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.security.InvalidKeyException;
-import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
-import java.security.NoSuchProviderException;
-import java.security.SignatureException;
-import java.security.UnrecoverableKeyException;
-import java.security.spec.InvalidKeySpecException;
-import java.util.Arrays;
 
 
 /**
@@ -50,6 +42,7 @@ public class MainActivity extends AppCompatActivity {
 
     private ImageView imageView;
     private ActivityResultLauncher<Intent> launcher;
+    private CryptoManager cm;
 
 
     /**
@@ -66,27 +59,12 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        // generate asymmetric key
-        String keyGenInfo = "RSA;2048;SHA-512;PKCS1";
-
-
-        String toSign = "Sign me!";
-        String signed = "";
-        RustDef.demoCreate("KeyPair2", keyGenInfo);
-        System.out.println("Sentence to sign: " + toSign);
-        signed = Arrays.toString(RustDef.demoSign(toSign.getBytes()));
-        try {
-            System.out.println("Verified? " + RustDef.verify_signature(toSign.getBytes(), signed.getBytes()));
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-
-
         imageView = findViewById(R.id.idIVimage);
         Button encButton = findViewById(R.id.idBtnEncrypt);
         Button decButton = findViewById(R.id.idBtnDecrypt);
         Button loadButton = findViewById(R.id.idBtnLoad);
         Button createButton = findViewById(R.id.idBtnCreate);
+        Button testButton = findViewById(R.id.idBtnTest);
 
         // Activity for encryption on button press
         launcher = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
@@ -95,6 +73,12 @@ public class MainActivity extends AppCompatActivity {
                 handleActivityResult(data);
             }
         });
+
+        // When test button is pressed
+        testButton.setOnClickListener((v -> {
+            // TODO: START TEST HERE
+
+        }));
 
         // When encrypt button is pressed
         encButton.setOnClickListener(v -> {
@@ -115,19 +99,15 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-
         //When load key button is pressed
         loadButton.setOnClickListener(v -> {
             try {
-
-
                 AlertDialog.Builder builder = new AlertDialog.Builder(this);
                 builder.setTitle("Name the ID of the key to load:");
                 final EditText input = new EditText(this);
                 builder.setView(input);
                 builder.setPositiveButton("OK", (dialog, which) -> {
                     String keyId = input.getText().toString();
-
                     RustDef.demoLoad(keyId);
                     Snackbar.make(v, "The key with ID \"" + keyId + "\" was successfully loaded!", Snackbar.LENGTH_SHORT).show();
                 });
@@ -140,7 +120,6 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-
         //When create key button is pressed
         createButton.setOnClickListener(v -> {
             try {
@@ -151,10 +130,10 @@ public class MainActivity extends AppCompatActivity {
                 builder.setPositiveButton("OK", (dialog, which) -> {
                     String keyId = input.getText().toString();
                     // generate symmetric key
-                    String keyGenInfoSYM = "AES;256;CBC;PKCS7Padding";
-
+                    String keyGenInfoSYM = "AES;256;GCM;NoPadding";
                     RustDef.demoCreate(keyId, keyGenInfoSYM);
                     Snackbar.make(v, "The key with ID \"" + keyId + "\" was successfully created!", Snackbar.LENGTH_SHORT).show();
+
                 });
                 builder.setNegativeButton("Cancel", (dialog, which) -> dialog.cancel());
                 builder.show();
@@ -163,8 +142,6 @@ public class MainActivity extends AppCompatActivity {
                 e.printStackTrace();
             }
         });
-
-
     }
 
     private boolean decryptPicture() throws Exception {
@@ -178,7 +155,6 @@ public class MainActivity extends AppCompatActivity {
         File decFile = new File(photoDir, "decfile.jpg");
 
         byte[] decBytes = RustDef.demoDecrypt(bytes);
-
         createFileFromByteArray(decBytes, decFile);
 
 
@@ -188,7 +164,6 @@ public class MainActivity extends AppCompatActivity {
             imageView.setImageBitmap(bitmap);
         }
         return true;
-
     }
 
     private void handleActivityResult(Intent data) {
@@ -226,6 +201,7 @@ public class MainActivity extends AppCompatActivity {
             File photoDir = contextWrapper.getExternalFilesDir(Environment.DIRECTORY_DCIM);
             File encFile = new File(photoDir, "encfile" + ".jpg");
             byte[] encryptedData = RustDef.demoEncrypt(toByteArray(path));
+
             createFileFromByteArray(encryptedData, encFile);
 
             return true;

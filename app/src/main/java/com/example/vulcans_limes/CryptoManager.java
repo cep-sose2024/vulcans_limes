@@ -98,7 +98,7 @@ public class CryptoManager {
                 .setKeySize(KEY_SIZE)
                 .setBlockModes(BLOCKING)
                 .setEncryptionPaddings(PADDING)
-               // .setIsStrongBoxBacked(true) TODO: REMOVE COMMENT
+                // .setIsStrongBoxBacked(true) TODO: REMOVE COMMENT
                 .build());
         keyGen.generateKey();
     }
@@ -226,7 +226,6 @@ public class CryptoManager {
             NoSuchAlgorithmException, InvalidAlgorithmParameterException, NoSuchProviderException,
             KeyStoreException {
         String[] keyGenInfoArr = keyGenInfo.split(";");
-        System.out.println(Arrays.toString(keyGenInfoArr));
         String KEY_ALGORITHM = keyGenInfoArr[0];
         String HASH = keyGenInfoArr[2];
 
@@ -257,7 +256,7 @@ public class CryptoManager {
                     .setKeySize(KEY_SIZE)
                     .setDigests(HASH)
                     .setSignaturePaddings(PADDING)
-                   // .setIsStrongBoxBacked(true) TODO: DELETE COMMENT
+                    // .setIsStrongBoxBacked(true) TODO: DELETE COMMENT
                     .build());
         }
         keyPairGen.generateKeyPair();

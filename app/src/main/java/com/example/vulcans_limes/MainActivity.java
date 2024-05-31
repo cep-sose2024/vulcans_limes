@@ -160,8 +160,6 @@ public class MainActivity extends AppCompatActivity {
                     RustDef.demoCreate(keyId, keyGenInfoASYM);
                     Snackbar.make(v, "The KeyPair with ID \"" + keyId + "\" was successfully created!", Snackbar.LENGTH_SHORT).show();
                 });
-                builder2.setNegativeButton("Cancel", (dialog, which) -> dialog.cancel());
-                builder2.show();
 
                 AlertDialog.Builder builder = new AlertDialog.Builder(this);
                 builder.setTitle("Set the Text to Sign:");
@@ -183,8 +181,8 @@ public class MainActivity extends AppCompatActivity {
 
                 builder.setNegativeButton("Cancel", (dialog, which) -> dialog.cancel());
                 builder2.setNegativeButton("Cancel", (dialog, which) -> dialog.cancel());
-                builder2.show();
                 builder.show();
+                builder2.show();
 
 
             } catch (Exception e) {
@@ -195,9 +193,10 @@ public class MainActivity extends AppCompatActivity {
         //When verify button is pressed
         verifyButton.setOnClickListener(v -> {
             try {
-                if (verifyText()) {
+                if (verifyText())
                     Toast.makeText(MainActivity.this, "Successful verify!", Toast.LENGTH_SHORT).show();
-                }
+                else
+                    Toast.makeText(MainActivity.this, "Fail to verify Text", Toast.LENGTH_SHORT).show();
 
             } catch (Exception e) {
                 Toast.makeText(MainActivity.this, "Fail to verify Text", Toast.LENGTH_SHORT).show();

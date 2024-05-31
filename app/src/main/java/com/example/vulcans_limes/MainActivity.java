@@ -27,6 +27,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 
 
 /**
@@ -213,8 +214,8 @@ public class MainActivity extends AppCompatActivity {
             File unsignedTxtFile = new File(txtDir, "unsignedfile" + ".txt");
             File signedTxtFile = new File(txtDir, "signedfile" + " .txt");
 
-            byte[] unsignedBytes = toByteArray(text);
-            byte[] signedBytes = RustDef.demoSign(toByteArray(text));
+            byte[] unsignedBytes = text.getBytes(StandardCharsets.UTF_8);
+            byte[] signedBytes = RustDef.demoSign(text.getBytes(StandardCharsets.UTF_8));
             createFileFromByteArray(signedBytes, signedTxtFile);
             createFileFromByteArray(unsignedBytes, unsignedTxtFile);
             return true;

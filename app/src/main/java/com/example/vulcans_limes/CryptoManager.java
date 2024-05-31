@@ -281,7 +281,8 @@ public class CryptoManager {
      * @throws SignatureException        if the signature cannot be processed.
      */
     public byte[] signData(byte[] data) throws NoSuchAlgorithmException, UnrecoverableKeyException,
-            KeyStoreException, InvalidKeyException, SignatureException, InvalidKeySpecException, NoSuchProviderException {
+            KeyStoreException, InvalidKeyException, SignatureException, InvalidKeySpecException, NoSuchProviderException, CertificateException, IOException {
+        keyStore.load(null);
         Signature signature = Signature.getInstance(buildSignatureAlgorithm((PrivateKey) keyStore.getKey(KEY_NAME, null)));
         signature.initSign((PrivateKey) keyStore.getKey(KEY_NAME, null));
         signature.update(data);
@@ -311,7 +312,8 @@ public class CryptoManager {
      * @throws NoSuchProviderException   if the provider is not available.
      */
     public boolean verifySignature(byte[] data, byte[] signedBytes) throws SignatureException, InvalidKeyException,
-            KeyStoreException, NoSuchAlgorithmException, UnrecoverableKeyException, InvalidKeySpecException, NoSuchProviderException {
+            KeyStoreException, NoSuchAlgorithmException, UnrecoverableKeyException, InvalidKeySpecException, NoSuchProviderException, CertificateException, IOException {
+        keyStore.load(null);
         Signature verificationSignature = Signature.getInstance(buildSignatureAlgorithm((PrivateKey) keyStore.getKey(KEY_NAME, null)));
         verificationSignature.initVerify(keyStore.getCertificate(KEY_NAME).getPublicKey());
         verificationSignature.update(data);

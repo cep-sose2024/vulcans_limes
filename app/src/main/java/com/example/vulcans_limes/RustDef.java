@@ -175,7 +175,7 @@ class RustDef {
      * @throws NoSuchProviderException   if the provider is not available.
      */
     static byte[] sign_data(byte[] data) throws UnrecoverableKeyException, NoSuchAlgorithmException,
-            KeyStoreException, SignatureException, InvalidKeyException, InvalidKeySpecException, NoSuchProviderException {
+            KeyStoreException, SignatureException, InvalidKeyException, InvalidKeySpecException, NoSuchProviderException, CertificateException, IOException {
         return cryptoManager.signData(data);
     }
 
@@ -199,7 +199,7 @@ class RustDef {
      */
     static boolean verify_signature(byte[] data, byte[] signature) throws SignatureException, KeyStoreException,
             NoSuchAlgorithmException, InvalidKeyException, UnrecoverableKeyException, InvalidKeySpecException,
-            NoSuchProviderException {
+            NoSuchProviderException, CertificateException, IOException {
         return cryptoManager.verifySignature(data, signature);
     }
 

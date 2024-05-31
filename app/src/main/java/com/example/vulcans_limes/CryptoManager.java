@@ -98,7 +98,7 @@ public class CryptoManager {
                 .setKeySize(KEY_SIZE)
                 .setBlockModes(BLOCKING)
                 .setEncryptionPaddings(PADDING)
-                .setIsStrongBoxBacked(true)
+               // .setIsStrongBoxBacked(true) TODO: REMOVE COMMENT
                 .build());
         keyGen.generateKey();
     }
@@ -257,7 +257,7 @@ public class CryptoManager {
                     .setKeySize(KEY_SIZE)
                     .setDigests(HASH)
                     .setSignaturePaddings(PADDING)
-                    .setIsStrongBoxBacked(true)
+                   // .setIsStrongBoxBacked(true) TODO: DELETE COMMENT
                     .build());
         }
         keyPairGen.generateKeyPair();

@@ -6,6 +6,9 @@ use robusta_jni::bridge;
 
 #[bridge]
 pub mod jni {
+    use std::any::Any;
+    use std::time::{SystemTime, UNIX_EPOCH};
+
     use android_logger::Config;
     use crypto_layer::common::crypto::algorithms::encryption::BlockCiphers::Aes;
     use crypto_layer::common::crypto::algorithms::encryption::SymmetricMode;
@@ -72,8 +75,10 @@ pub mod jni {
         pub extern "jni" fn callRust(environment: &JNIEnv) -> String {
             // Enable Console Output to be printed to Logcat
             android_logger::init_once(
-                Config::default().with_max_level(LevelFilter::Trace),
+                Config::default().with_max_level(LevelFilter::Debug),
             );
+
+            let mut java_exceptions_occurred = false;
 
             debug!("Start Test");
             let instance = SecModules::get_instance(
@@ -83,28 +88,45 @@ pub mod jni {
             let mut module = instance.lock().unwrap();
             debug!("created provider");
 
-            let config = KnoxConfig::new(None,
+            let config = Box::new(KnoxConfig::new(None,
                                          Some(Aes(SymmetricMode::Cbc, Bits128)),
-                                         environment.get_java_vm().unwrap());
+                                                  environment.get_java_vm().unwrap()));
             debug!("created config");
+
             module
                 .initialize_module()
                 .expect("Failed to initialize module");
+            let res = Self::check_java_exceptions(environment);
+            if let Err(_) = res {
+                java_exceptions_occurred = true;
+            }
             debug!("init module done");
-            let _ = Self::check_java_exceptions(environment);
 
-            let keyname = "test_key";
-            module
-                .create_key(keyname, config)
-                .expect("Failed to create sym key");
+            let keyname: &str = &Self::generate_unique_string();
+            let result = module
+                .create_key(keyname, config);
+            if result.is_err() { return format!("Create key failed: {:?}", result.unwrap_err()) };
+            let res = Self::check_java_exceptions(environment);
+            if let Err(_) = res {
+                java_exceptions_occurred = true;
+            }
             debug!("create sym key done");
 
-            let config = KnoxConfig::new(None,
-                                         Some(Aes(SymmetricMode::Cbc, Bits128)),
-                                         environment.get_java_vm().unwrap());
+            let config = Box::new(KnoxConfig::new(None,
+                                                  Some(Aes(SymmetricMode::Cbc, Bits128)),
+                                                  environment.get_java_vm().unwrap())) as Box<dyn Any>;
             module.load_key(keyname, config).expect("Failed to load key");
+            let res = Self::check_java_exceptions(environment);
+            if let Err(_) = res {
+                java_exceptions_occurred = true;
+            }
+            debug!("load key done");
 
-            return String::from("Done!");
+
+            return match java_exceptions_occurred {
+                false => { String::from("Success: No java exceptions occurred") }
+                true => { String::from("FAIL: Java exceptions occurred") }
+            };
         }
 
         pub extern "jni" fn demoCreate(environment: &JNIEnv, key_id: String, key_gen_info: String) -> () {
@@ -579,6 +601,14 @@ pub mod jni {
             } else {
                 Ok(())
             }
+        }
+
+        ///This function returns a new String with the current time since Unix epoch
+        /// This is only used during testing to generate an new key_id without the need for manual input
+        fn generate_unique_string() -> String {
+            let since_the_epoch = SystemTime::now().duration_since(UNIX_EPOCH).expect("Time went backwards");
+            let seconds_since_epoch = since_the_epoch.as_secs();
+            format!("{}", seconds_since_epoch)
         }
     }
 }

@@ -98,7 +98,7 @@ public class CryptoManager {
                 .setKeySize(KEY_SIZE)
                 .setBlockModes(BLOCKING)
                 .setEncryptionPaddings(PADDING)
-                .setIsStrongBoxBacked(true)
+                // .setIsStrongBoxBacked(true) TODO: REMOVE COMMENT
                 .build());
         keyGen.generateKey();
     }
@@ -226,7 +226,6 @@ public class CryptoManager {
             NoSuchAlgorithmException, InvalidAlgorithmParameterException, NoSuchProviderException,
             KeyStoreException {
         String[] keyGenInfoArr = keyGenInfo.split(";");
-        System.out.println(Arrays.toString(keyGenInfoArr));
         String KEY_ALGORITHM = keyGenInfoArr[0];
         String HASH = keyGenInfoArr[2];
 
@@ -257,7 +256,7 @@ public class CryptoManager {
                     .setKeySize(KEY_SIZE)
                     .setDigests(HASH)
                     .setSignaturePaddings(PADDING)
-                    .setIsStrongBoxBacked(true)
+                    // .setIsStrongBoxBacked(true) TODO: DELETE COMMENT
                     .build());
         }
         keyPairGen.generateKeyPair();
@@ -281,7 +280,8 @@ public class CryptoManager {
      * @throws SignatureException        if the signature cannot be processed.
      */
     public byte[] signData(byte[] data) throws NoSuchAlgorithmException, UnrecoverableKeyException,
-            KeyStoreException, InvalidKeyException, SignatureException, InvalidKeySpecException, NoSuchProviderException {
+            KeyStoreException, InvalidKeyException, SignatureException, InvalidKeySpecException, NoSuchProviderException, CertificateException, IOException {
+        keyStore.load(null);
         Signature signature = Signature.getInstance(buildSignatureAlgorithm((PrivateKey) keyStore.getKey(KEY_NAME, null)));
         signature.initSign((PrivateKey) keyStore.getKey(KEY_NAME, null));
         signature.update(data);
@@ -311,7 +311,8 @@ public class CryptoManager {
      * @throws NoSuchProviderException   if the provider is not available.
      */
     public boolean verifySignature(byte[] data, byte[] signedBytes) throws SignatureException, InvalidKeyException,
-            KeyStoreException, NoSuchAlgorithmException, UnrecoverableKeyException, InvalidKeySpecException, NoSuchProviderException {
+            KeyStoreException, NoSuchAlgorithmException, UnrecoverableKeyException, InvalidKeySpecException, NoSuchProviderException, CertificateException, IOException {
+        keyStore.load(null);
         Signature verificationSignature = Signature.getInstance(buildSignatureAlgorithm((PrivateKey) keyStore.getKey(KEY_NAME, null)));
         verificationSignature.initVerify(keyStore.getCertificate(KEY_NAME).getPublicKey());
         verificationSignature.update(data);

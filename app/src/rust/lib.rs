@@ -68,48 +68,57 @@ pub mod jni {
             input1.iter().map(ToString::to_string).collect()
         }
 
-        ///Proof of concept method - shows callback from Rust to a java method
-        ///     ONLY USE FOR TESTING
-        pub extern "jni" fn callRust(_environment: &JNIEnv) -> String {
-            return String::from("empty method");
-        }
+        ///Tests all functions through the abstraction layer
+        pub extern "jni" fn callRust(environment: &JNIEnv) -> String {
+            // Enable Console Output to be printed to Logcat
+            android_logger::init_once(
+                Config::default().with_max_level(LevelFilter::Trace),
+            );
 
-        pub extern "jni" fn demoCreate(environment: &JNIEnv, key_id: String, _key_gen_info: String) -> () {
-            // Self::create_key(environment, key_id, key_gen_info).unwrap();
-            // let _ = Self::check_java_exceptions(environment);
-            debug!("Start create");
-            let mut module = SecModules::get_instance(
+            debug!("Start Test");
+            let instance = SecModules::get_instance(
                 "test_key".to_owned(),
                 SecurityModule::Tpm(TpmType::Android(AndroidTpmType::Knox)),
-                None).unwrap().lock().unwrap();
-
+                None).unwrap();
+            let mut module = instance.lock().unwrap();
             debug!("created provider");
+
             let config = KnoxConfig::new(None,
                                          Some(Aes(SymmetricMode::Cbc, Bits128)),
                                          environment.get_java_vm().unwrap());
             debug!("created config");
-
             module
                 .initialize_module()
                 .expect("Failed to initialize module");
             debug!("init module done");
             let _ = Self::check_java_exceptions(environment);
+
+            let keyname = "test_key";
             module
-                .create_key(&*key_id, config)
-                .expect("Failed to create RSA key");
-            debug!("create key done");
+                .create_key(keyname, config)
+                .expect("Failed to create sym key");
+            debug!("create sym key done");
+
+            let config = KnoxConfig::new(None,
+                                         Some(Aes(SymmetricMode::Cbc, Bits128)),
+                                         environment.get_java_vm().unwrap());
+            module.load_key(keyname, config).expect("Failed to load key");
+
+            return String::from("Done!");
+        }
+
+        pub extern "jni" fn demoCreate(environment: &JNIEnv, key_id: String, key_gen_info: String) -> () {
+            Self::create_key(environment, key_id, key_gen_info).unwrap();
+            let _ = Self::check_java_exceptions(environment);
+
         }
 
         pub extern "jni" fn demoInit(environment: &JNIEnv) -> () {
+            // Enable Console Output to be printed to Logcat
             android_logger::init_once(
                 Config::default().with_max_level(LevelFilter::Trace),
             );
-            debug!("Start init");
-            let mut module = SecModules::get_instance(
-                "test_key".to_owned(),
-                SecurityModule::Tpm(TpmType::Android(AndroidTpmType::Knox)),
-                None).unwrap().lock().unwrap();
-            let _ = module.initialize_module();
+            let _ = Self::initialize_module(environment);
             let _ = Self::check_java_exceptions(environment);
         }
 

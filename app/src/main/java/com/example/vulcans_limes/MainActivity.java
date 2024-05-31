@@ -85,10 +85,7 @@ public class MainActivity extends AppCompatActivity {
         });
 
         // When test button is pressed
-        testButton.setOnClickListener((v -> {
-            // TODO: START TEST HERE
-
-        }));
+        testButton.setOnClickListener((v -> System.out.println(RustDef.callRust())));
 
         // When encrypt button is pressed
         encButton.setOnClickListener(v -> {

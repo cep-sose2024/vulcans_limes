@@ -66,16 +66,9 @@ class RustDef {
      */
     static native ArrayList<String> special(ArrayList<Integer> input1, int input2);
 
-    /**
-     * Proof of concept method - shows callback from Rust to a java method
-     * ONLY USE FOR TESTING
-     */
+
     static native String callRust();
 
-    /**
-     * Is called to start all demo method calls from the Rust side
-     * --temporary--
-     */
     static native byte[] demoEncrypt(byte[] data);
 
     static native void demoCreate(String key_id, String keyGenInfo);

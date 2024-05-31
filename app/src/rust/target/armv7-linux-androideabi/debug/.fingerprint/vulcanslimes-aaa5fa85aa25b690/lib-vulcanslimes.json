@@ -1,1 +1,51 @@
-{"rustc":16862383235050706272,"features":"[]","declared_features":"","target":6522916382064132791,"profile":11597332650809196192,"path":1012245297704538396,"deps":[[6008736195112962634,"robusta_jni",false,766443927973246125],[9495602273436330241,"android_logger",false,17514228886574448561],[10187828652899488954,"log",false,7474207266482862918],[12907648436107074741,"jni",false,3544499348862092287]],"local":[{"CheckDepInfo":{"dep_info":"armv7-linux-androideabi\\debug\\.fingerprint\\vulcanslimes-aaa5fa85aa25b690\\dep-lib-vulcanslimes"}}],"rustflags":[],"metadata":7797948686568424061,"config":8510300538582027693,"compile_kind":9321988276509765307}
+{
+  "rustc": 4385736999455743866,
+  "features": "[]",
+  "declared_features": "",
+  "target": 6522916382064132791,
+  "profile": 11597332650809196192,
+  "path": 1012245297704538396,
+  "deps": [
+    [
+      5689866890983105287,
+      "crypto_layer",
+      false,
+      2261959992012642242
+    ],
+    [
+      6008736195112962634,
+      "robusta_jni",
+      false,
+      16953717502629638019
+    ],
+    [
+      9495602273436330241,
+      "android_logger",
+      false,
+      17088344068924945221
+    ],
+    [
+      10187828652899488954,
+      "log",
+      false,
+      1149484740415024973
+    ],
+    [
+      12907648436107074741,
+      "jni",
+      false,
+      16771220953835531589
+    ]
+  ],
+  "local": [
+    {
+      "CheckDepInfo": {
+        "dep_info": "armv7-linux-androideabi\\debug\\.fingerprint\\vulcanslimes-aaa5fa85aa25b690\\dep-lib-vulcanslimes"
+      }
+    }
+  ],
+  "rustflags": [],
+  "metadata": 7797948686568424061,
+  "config": 8510300538582027693,
+  "compile_kind": 9321988276509765307
+}

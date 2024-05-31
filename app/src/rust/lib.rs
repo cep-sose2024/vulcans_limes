@@ -6,25 +6,37 @@ use robusta_jni::bridge;
 
 #[bridge]
 pub mod jni {
-    use std::any::Any;
     use std::time::{SystemTime, UNIX_EPOCH};
 
     use android_logger::Config;
-    use crypto_layer::common::crypto::algorithms::encryption::BlockCiphers::Aes;
-    use crypto_layer::common::crypto::algorithms::encryption::SymmetricMode;
-    use crypto_layer::common::crypto::algorithms::KeyBits::Bits128;
-    use crypto_layer::common::factory::SecurityModule;
-    use crypto_layer::SecModules;
-    use crypto_layer::tpm::android::knox::KnoxConfig;
-    use crypto_layer::tpm::core::instance::{AndroidTpmType, TpmType};
+    use crypto_layer::{
+        common::{
+            crypto::{
+                algorithms::{
+                    encryption::{BlockCiphers::Aes, SymmetricMode},
+                    KeyBits::Bits128,
+                }
+            },
+            factory::SecurityModule,
+        },
+        SecModules,
+        tpm::android::knox::KnoxConfig,
+        tpm::core::instance::{AndroidTpmType, TpmType},
+    };
+    use crypto_layer::common::crypto::algorithms::encryption::AsymmetricEncryption::Rsa;
+    use crypto_layer::common::crypto::algorithms::KeyBits::{Bits2048, Bits256};
     use log::{debug, LevelFilter};
-    #[allow(unused_imports)]
+    use robusta_jni::{
+        convert::{IntoJavaValue, Signature, TryFromJavaValue, TryIntoJavaValue},
+        jni::{
+            errors::Error,
+            JNIEnv,
+            objects::{AutoLocal, JValue},
+            sys::jbyteArray,
+        },
+    };
+    #[allow(unused_imports)] //the bridge import is marked as unused, but if removed the compiler throws an error
     use robusta_jni::bridge;
-    use robusta_jni::convert::{IntoJavaValue, Signature, TryFromJavaValue, TryIntoJavaValue};
-    use robusta_jni::jni::errors::Error;
-    use robusta_jni::jni::JNIEnv;
-    use robusta_jni::jni::objects::{AutoLocal, JValue};
-    use robusta_jni::jni::sys::jbyteArray;
 
     extern crate crypto_layer;
 
@@ -32,7 +44,7 @@ pub mod jni {
     #[package(com.example.vulcans_1limes)]
     pub struct RustDef<'env: 'borrow, 'borrow> {
         #[instance]
-        pub raw: AutoLocal<'env, 'borrow>
+        pub raw: AutoLocal<'env, 'borrow>,
     }
 
     /// This Implementation provides the method declarations that are the interface for the JNI.
@@ -73,12 +85,17 @@ pub mod jni {
 
         ///Tests all functions through the abstraction layer
         pub extern "jni" fn callRust(environment: &JNIEnv) -> String {
+            //Settings for the Test
+            let sym_key = Aes(SymmetricMode::Cbc, Bits128); //Key to be used for symmetric encryption
+            let asym_key = Rsa(Bits2048); //Key to be used for asymmetric encryption
+            let clear_data: &[u8] = &[1, 0, 255]; //Data to be symmetrically encrypted
+            let sign_data: &[u8] = &[1, 0, 255]; //Data to be signed by the asym key
+
             // Enable Console Output to be printed to Logcat
             android_logger::init_once(
-                Config::default().with_max_level(LevelFilter::Debug),
+                Config::default().with_max_level(LevelFilter::Info),
             );
-
-            let mut java_exceptions_occurred = false;
+            let mut passed = 0;
 
             debug!("Start Test");
             let instance = SecModules::get_instance(
@@ -88,51 +105,86 @@ pub mod jni {
             let mut module = instance.lock().unwrap();
             debug!("created provider");
 
-            let config = Box::new(KnoxConfig::new(None,
-                                         Some(Aes(SymmetricMode::Cbc, Bits128)),
-                                                  environment.get_java_vm().unwrap()));
-            debug!("created config");
-
             module
                 .initialize_module()
                 .expect("Failed to initialize module");
-            let res = Self::check_java_exceptions(environment);
-            if let Err(_) = res {
-                java_exceptions_occurred = true;
-            }
+            passed = Self::check(environment, passed).map_err(|err| return err).unwrap();
             debug!("init module done");
 
             let keyname: &str = &Self::generate_unique_string();
-            let result = module
-                .create_key(keyname, config);
-            if result.is_err() { return format!("Create key failed: {:?}", result.unwrap_err()) };
-            let res = Self::check_java_exceptions(environment);
-            if let Err(_) = res {
-                java_exceptions_occurred = true;
-            }
+            let config = Box::new(KnoxConfig::new(None,
+                                                  Some(sym_key),
+                                                  environment.get_java_vm().unwrap()));
+            let result = module.create_key(keyname, config);
+            if result.is_err() { return format!("Create key failed: {:?}", result.unwrap_err()); };
+            passed = Self::check(environment, passed).map_err(|err| return err).unwrap();
             debug!("create sym key done");
 
             let config = Box::new(KnoxConfig::new(None,
-                                                  Some(Aes(SymmetricMode::Cbc, Bits128)),
-                                                  environment.get_java_vm().unwrap())) as Box<dyn Any>;
-            module.load_key(keyname, config).expect("Failed to load key");
-            let res = Self::check_java_exceptions(environment);
-            if let Err(_) = res {
-                java_exceptions_occurred = true;
-            }
+                                                  Some(sym_key),
+                                                  environment.get_java_vm().unwrap()));
+            module
+                .load_key(keyname, config)
+                .map_err(|err| return format!("Fail: {}", err)).unwrap();
+            passed = Self::check(environment, passed).map_err(|err| return err).unwrap();
             debug!("load key done");
 
+            debug!("Starting encrypt: {:?}", clear_data);
+            let enc_data = module
+                .encrypt_data(clear_data)
+                .map_err(|err| return format!("Fail: {}", err)).unwrap();
+            passed = Self::check(environment, passed).map_err(|err| return err).unwrap();
 
-            return match java_exceptions_occurred {
-                false => { String::from("Success: No java exceptions occurred") }
-                true => { String::from("FAIL: Java exceptions occurred") }
-            };
+            debug!("Starting decrypt: {:?}", enc_data);
+            let dec_data = module
+                .decrypt_data(&enc_data)
+                .map_err(|err| return format!("Fail: {}", err)).unwrap();
+            passed = Self::check(environment, passed).map_err(|err| return err).unwrap();
+            debug!("Decrypted data: {:?}", dec_data);
+            debug!("Clear Data matches decrypted data: {}",clear_data == &dec_data);
+
+
+            debug!("Starting asym key generation");
+            let keyname: &str = &format!("Asym{}", &Self::generate_unique_string());
+            let config = Box::new(KnoxConfig::new(Some(asym_key),
+                                                  None,
+                                                  environment.get_java_vm().unwrap()));
+            module
+                .create_key(keyname, config)
+                .map_err(|err| return format!("Fail: {}", err)).unwrap();
+            passed = Self::check(environment, passed).map_err(|err| return err).unwrap();
+            debug!("create asym key done");
+
+            let config = Box::new(KnoxConfig::new(Some(asym_key),
+                                                  None,
+                                                  environment.get_java_vm().unwrap()));
+            module
+                .load_key(keyname, config)
+                .map_err(|err| return format!("Fail: {}", err)).unwrap();
+            passed = Self::check(environment, passed).map_err(|err| return err).unwrap();
+            debug!("load key done");
+
+            debug!("Starting sign: {:?}", sign_data);
+            let verify_data = module
+                .sign_data(sign_data)
+                .map_err(|err| return format!("Fail: {}", err)).unwrap();
+            passed = Self::check(environment, passed).map_err(|err| return err).unwrap();
+
+            debug!("Starting verify: {:?}", verify_data);
+            let result_verify = module
+                .verify_signature(&sign_data, &verify_data)
+                .map_err(|err| return format!("Fail: {}", err)).unwrap();
+            passed = Self::check(environment, passed).map_err(|err| return err).unwrap();
+            debug!("Result from verify_data(): {}", result_verify);
+
+            return format!("Successfully completed {} tasks, 0 fails", passed);
         }
+
+
 
         pub extern "jni" fn demoCreate(environment: &JNIEnv, key_id: String, key_gen_info: String) -> () {
             Self::create_key(environment, key_id, key_gen_info).unwrap();
             let _ = Self::check_java_exceptions(environment);
-
         }
 
         pub extern "jni" fn demoInit(environment: &JNIEnv) -> () {
@@ -205,7 +257,7 @@ pub mod jni {
         /// # Arguments
         /// `key_id` - String that uniquely identifies the key so that it can be retrieved later
         pub fn create_key(environment: &JNIEnv, key_id: String, key_gen_info: String)
-            -> Result<(), String> {
+                          -> Result<(), String> {
             let result = environment.call_static_method(
                 "com/example/vulcans_limes/RustDef",
                 "create_key",
@@ -578,6 +630,14 @@ pub mod jni {
                 Ok(v) => { Ok(v) }
                 Err(_) => { Err(String::from("Conversion from jbyteArray to Vec<u8> failed")) }
             }
+        }
+
+        ///Checks for Java Exceptions and returns a String describing them if they occurred. Otherwise,
+        /// increases the counter of successful operations by one
+        fn check(environment: &JNIEnv, passed: i32) -> Result<i32, String> {
+            if let Err(err) = Self::check_java_exceptions(environment) {
+                return Err(format!("{:?}", err));
+            } else { Ok(passed + 1) }
         }
 
         /// Checks for any pending Java exceptions in the provided Java environment (`JNIEnv`).

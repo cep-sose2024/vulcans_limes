@@ -98,7 +98,7 @@ public class CryptoManager {
                 .setKeySize(KEY_SIZE)
                 .setBlockModes(BLOCKING)
                 .setEncryptionPaddings(PADDING)
-                // .setIsStrongBoxBacked(true) TODO: REMOVE COMMENT
+                .setIsStrongBoxBacked(true)
                 .build());
         keyGen.generateKey();
     }
@@ -107,12 +107,11 @@ public class CryptoManager {
      * Encrypts the given data using a symmetric key stored in the Android KeyStore.
      * <p>
      * This method takes plaintext data as input and encrypts it using a symmetric key retrieved from the Android KeyStore.
-     * The encryption process supports both GCM and non-GCM transformations. For GCM transformations, a new initialization vector (IV)
-     * is generated using a secure random number generator, and the IV is prepended to the ciphertext. The method initializes a
+     * The encryption process supports supports GCM, CBC and CTR transformations. A new initialization vector (IV)
+     * is generated and the IV is prepended to the ciphertext. The method initializes a
      * {@link Cipher} instance with the appropriate transformation, loads the Android KeyStore, retrieves the symmetric key, and then
      * initializes the cipher in encryption mode with the retrieved key and the generated IV. Finally, the plaintext data is encrypted
-     * using the cipher's {@code doFinal} method, and the resulting ciphertext (with the IV prepended in the case of GCM) is returned
-     * as a byte array.
+     * using the cipher's {@code doFinal} method, and the resulting ciphertext is returned as a byte array.
      *
      * @param data The plaintext data to be encrypted, represented as a byte array.
      * @return A byte array representing the encrypted data, with the IV prepended in the case of GCM mode.
@@ -157,7 +156,7 @@ public class CryptoManager {
      * Decrypts the given encrypted data using a symmetric key stored in the Android KeyStore.
      * <p>
      * This method takes encrypted data as input and decrypts it using a symmetric key retrieved from the Android KeyStore.
-     * The decryption process supports both GCM and non-GCM transformations. For GCM transformations, the initialization vector (IV)
+     * The decryption process supports GCM, CBC and CTR transformations. The initialization vector (IV)
      * is extracted from the beginning of the encrypted data. The method initializes a {@link Cipher} instance with the appropriate
      * transformation, loads the Android KeyStore, retrieves the symmetric key, and initializes the cipher in decryption mode with the
      * retrieved key and the extracted IV. Finally, the encrypted data is decrypted using the cipher's {@code doFinal} method, and the
@@ -213,6 +212,9 @@ public class CryptoManager {
      * The method configures the key pair generator with specific parameters, like the digest algorithms to be supported,
      * the signature padding scheme, and whether the key is backed by the strong box feature for enhanced security.
      * The generated key pair consists of a private key for signing and a corresponding public key for verification.
+     * The supported algorithms are RSA and EC. The keyGenInfo String should have the following form:
+     * For RSA: RSA;key size;hash;padding
+     * For EC: EC;curve;hash
      *
      * @param key_id The unique identifier under which the key pair will be stored in the KeyStore.
      * @throws CertificateException               if there is an issue creating the certificate for the key pair.
@@ -256,7 +258,7 @@ public class CryptoManager {
                     .setKeySize(KEY_SIZE)
                     .setDigests(HASH)
                     .setSignaturePaddings(PADDING)
-                    // .setIsStrongBoxBacked(true) TODO: DELETE COMMENT
+                    .setIsStrongBoxBacked(true)
                     .build());
         }
         keyPairGen.generateKeyPair();
@@ -317,25 +319,6 @@ public class CryptoManager {
         verificationSignature.initVerify(keyStore.getCertificate(KEY_NAME).getPublicKey());
         verificationSignature.update(data);
         return verificationSignature.verify(signedBytes);
-    }
-
-    /**
-     * Converts a primitive byte array to an array of Byte objects.
-     * <p>
-     * This method takes a primitive byte array as input and returns an array of Byte objects.
-     * Each element in the input array is wrapped in a Byte object.
-     *
-     * @param bytesPrim The primitive byte array to be converted.
-     * @return An array of Byte objects corresponding to the elements of the input byte array.
-     * @throws NullPointerException if the input byte array is null.
-     */
-    public Byte[] toByte(byte[] bytesPrim) { // TODO: still needed?
-        if (bytesPrim == null) {
-            throw new NullPointerException("Input byte array cannot be null.");
-        }
-        Byte[] bytes = new Byte[bytesPrim.length];
-        Arrays.setAll(bytes, n -> bytesPrim[n]);
-        return bytes;
     }
 
     /**
@@ -442,7 +425,7 @@ public class CryptoManager {
      * @throws NoSuchProviderException   if the specified provider is not available.
      * @throws UnrecoverableKeyException if the key cannot be recovered from the keystore.
      * @throws KeyStoreException         if there is an error accessing the keystore.
-     */ // TODO: DELETE BEFORE RELEASE
+     */ // TODO: DELETE BEFORE FINAL RELEASE
     public void showKeyInfo() throws NullPointerException, CertificateException, IOException,
             NoSuchAlgorithmException, InvalidKeySpecException, NoSuchProviderException, UnrecoverableKeyException,
             KeyStoreException {

@@ -75,12 +75,39 @@
         android:layout_centerInParent="true"
         android:orientation="horizontal">
 
-        <!-- Button to sign data -->
+        <!-- Button to sign -->
+        <Button
+            android:id="@+id/idBtnSign"
+            android:layout_width="160dp"
+            android:layout_height="wrap_content"
+            android:layout_margin="10dp"
+            android:text="Sign" />
+
+        <!-- Button to verify -->
+        <Button
+            android:id="@+id/idBtnVerify"
+            android:layout_width="160dp"
+            android:layout_height="wrap_content"
+            android:layout_margin="10dp"
+            android:text="Verify" />
+    </LinearLayout>
+
+    <!-- Group of test -->
+    <LinearLayout
+        android:id="@+id/linearLayout4"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@+id/linearLayout3"
+        android:layout_centerInParent="true"
+        android:orientation="horizontal">
+
+        <!-- Button to test -->
         <Button
             android:id="@+id/idBtnTest"
-            android:layout_width="wrap_content"
+            android:layout_width="80dp"
             android:layout_height="wrap_content"
             android:layout_margin="10dp"
             android:text="Test" />
     </LinearLayout>
+
 </RelativeLayout>

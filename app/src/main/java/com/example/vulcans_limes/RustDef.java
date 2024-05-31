@@ -71,16 +71,15 @@ class RustDef {
 
     static native byte[] demoEncrypt(byte[] data);
 
-    static native void demoCreate(String key_id, String keyGenInfo);
+    static native void demoCreate(String key_id, String key_gen_info);
 
     static native void demoInit();
-
 
     static native byte[] demoDecrypt(byte[] data);
 
     static native byte[] demoSign(byte[] data);
 
-    static native boolean demoVerify(byte[] data);
+    static native boolean demoVerify(byte[] data, byte[] signed_data);
 
     static native void demoLoad(String key_id);
 
@@ -173,7 +172,7 @@ class RustDef {
      * @throws NoSuchProviderException   if the provider is not available.
      */
     static byte[] sign_data(byte[] data) throws UnrecoverableKeyException, NoSuchAlgorithmException,
-            KeyStoreException, SignatureException, InvalidKeyException, InvalidKeySpecException, NoSuchProviderException {
+            KeyStoreException, SignatureException, InvalidKeyException, InvalidKeySpecException, NoSuchProviderException, CertificateException, IOException {
         return cryptoManager.signData(data);
     }
 
@@ -197,7 +196,7 @@ class RustDef {
      */
     static boolean verify_signature(byte[] data, byte[] signature) throws SignatureException, KeyStoreException,
             NoSuchAlgorithmException, InvalidKeyException, UnrecoverableKeyException, InvalidKeySpecException,
-            NoSuchProviderException {
+            NoSuchProviderException, CertificateException, IOException {
         return cryptoManager.verifySignature(data, signature);
     }
 
@@ -264,4 +263,5 @@ class RustDef {
             NoSuchProviderException {
         return cryptoManager.decryptData(encrypted_data);
     }
+
 }

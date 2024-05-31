@@ -27,15 +27,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.security.InvalidAlgorithmParameterException;
-import java.security.InvalidKeyException;
-import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
-import java.security.NoSuchProviderException;
-import java.security.SignatureException;
-import java.security.UnrecoverableKeyException;
-import java.security.cert.CertificateException;
-import java.security.spec.InvalidKeySpecException;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 
 
@@ -74,6 +66,8 @@ public class MainActivity extends AppCompatActivity {
         Button decButton = findViewById(R.id.idBtnDecrypt);
         Button loadButton = findViewById(R.id.idBtnLoad);
         Button createButton = findViewById(R.id.idBtnCreate);
+        Button signButton = findViewById(R.id.idBtnSign);
+        Button verifyButton = findViewById(R.id.idBtnVerify);
         Button testButton = findViewById(R.id.idBtnTest);
 
         // Activity for encryption on button press
@@ -85,7 +79,9 @@ public class MainActivity extends AppCompatActivity {
         });
 
         // When test button is pressed
-        testButton.setOnClickListener((v -> System.out.println(RustDef.callRust())));
+        testButton.setOnClickListener((v -> {
+            // TODO: START TEST HERE
+        }));
 
         // When encrypt button is pressed
         encButton.setOnClickListener(v -> {
@@ -149,6 +145,122 @@ public class MainActivity extends AppCompatActivity {
                 e.printStackTrace();
             }
         });
+
+        //When sign button is pressed
+        signButton.setOnClickListener(v -> {
+            try {
+
+                AlertDialog.Builder builder2 = new AlertDialog.Builder(this);
+                builder2.setTitle("Name the ID of the key pair to create:");
+                final EditText input2 = new EditText(this);
+                builder2.setView(input2);
+                builder2.setPositiveButton("OK", (dialog, which) -> {
+                    String keyId = input2.getText().toString();
+                    // generate asymmetric key
+                    String keyGenInfoASYM = "RSA;2048;SHA-256;PKCS1";
+                    RustDef.demoCreate(keyId, keyGenInfoASYM);
+                    Snackbar.make(v, "The KeyPair with ID \"" + keyId + "\" was successfully created!", Snackbar.LENGTH_SHORT).show();
+                });
+
+                AlertDialog.Builder builder = new AlertDialog.Builder(this);
+                builder.setTitle("Set the Text to Sign:");
+                final EditText input = new EditText(this);
+                builder.setView(input);
+                builder.setPositiveButton("OK", (dialog, which) -> {
+                    String signText = input.getText().toString();
+                    Snackbar.make(v, "Signing Text...", Snackbar.LENGTH_SHORT).show();
+
+                    try {
+                        if (signText(signText)) {
+                            Toast.makeText(this, "Text signed..", Toast.LENGTH_SHORT).show();
+                        }
+                    } catch (IOException e) {
+                        Toast.makeText(this, "Fail to sign Text: " + e, Toast.LENGTH_SHORT).show();
+                        e.printStackTrace();
+                    }
+                });
+
+                builder.setNegativeButton("Cancel", (dialog, which) -> dialog.cancel());
+                builder2.setNegativeButton("Cancel", (dialog, which) -> dialog.cancel());
+                builder.show();
+                builder2.show();
+
+
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        });
+
+        //When verify button is pressed
+        verifyButton.setOnClickListener(v -> {
+            try {
+                if (verifyText())
+                    Toast.makeText(MainActivity.this, "Successful verify!", Toast.LENGTH_SHORT).show();
+                else
+                    Toast.makeText(MainActivity.this, "Fail to verify Text", Toast.LENGTH_SHORT).show();
+
+            } catch (Exception e) {
+                Toast.makeText(MainActivity.this, "Fail to verify Text", Toast.LENGTH_SHORT).show();
+                e.printStackTrace();
+            }
+
+        });
+
+    }
+
+
+    private boolean signText(String text) throws IOException {
+        try {
+            ContextWrapper contextWrapper = new ContextWrapper(getApplication());
+            File txtDir = contextWrapper.getExternalFilesDir(Environment.DIRECTORY_DCIM);
+            File unsignedTxtFile = new File(txtDir, "unsignedfile" + ".txt");
+            File signedTxtFile = new File(txtDir, "signedfile" + ".txt");
+
+            byte[] unsignedBytes = text.getBytes(StandardCharsets.UTF_8);
+            byte[] signedBytes = RustDef.demoSign(text.getBytes(StandardCharsets.UTF_8));
+
+            createFileFromByteArray(signedBytes, signedTxtFile);
+            createFileFromByteArray(unsignedBytes, unsignedTxtFile);
+            return true;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    private boolean verifyText() {
+        try {
+            ContextWrapper contextWrapper = new ContextWrapper(getApplication());
+            File txtDir = contextWrapper.getExternalFilesDir(Environment.DIRECTORY_DCIM);
+            File unsignedTxtFile = new File(txtDir, "unsignedfile" + ".txt");
+            File signedTxtFile = new File(txtDir, "signedfile" + ".txt");
+
+            byte[] unsignedBytes = toByteArray(unsignedTxtFile.getPath());
+            byte[] signedBytes = toByteArray(signedTxtFile.getPath());
+            return RustDef.demoVerify(unsignedBytes, signedBytes);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+
+    private boolean pictureEncrypt(String path) {
+        try {
+            ContextWrapper contextWrapper = new ContextWrapper(getApplication());
+            File photoDir = contextWrapper.getExternalFilesDir(Environment.DIRECTORY_DCIM);
+            File encFile = new File(photoDir, "encfile" + ".jpg");
+            byte[] encryptedData = RustDef.demoEncrypt(toByteArray(path));
+
+            createFileFromByteArray(encryptedData, encFile);
+
+            return true;
+        } catch (Exception e) {
+            e.printStackTrace();
+            View view = findViewById(android.R.id.content);
+            Snackbar.make(view, "encrypt failed!", Snackbar.LENGTH_SHORT).show();
+            return false;
+        }
     }
 
     private boolean decryptPicture() throws Exception {
@@ -191,32 +303,13 @@ public class MainActivity extends AppCompatActivity {
             cursor.close();
 
             try {
-                boolean didItWork = pictureEncrypt(picPath);
-                if (didItWork) {
+                if (pictureEncrypt(picPath)) {
                     Toast.makeText(this, "Image encrypted..", Toast.LENGTH_SHORT).show();
                 }
             } catch (Exception e) {
                 e.printStackTrace();
                 Toast.makeText(this, "Fail to encrypt image : " + e, Toast.LENGTH_SHORT).show();
             }
-        }
-    }
-
-    private boolean pictureEncrypt(String path) {
-        try {
-            ContextWrapper contextWrapper = new ContextWrapper(getApplication());
-            File photoDir = contextWrapper.getExternalFilesDir(Environment.DIRECTORY_DCIM);
-            File encFile = new File(photoDir, "encfile" + ".jpg");
-            byte[] encryptedData = RustDef.demoEncrypt(toByteArray(path));
-
-            createFileFromByteArray(encryptedData, encFile);
-
-            return true;
-        } catch (Exception e) {
-            e.printStackTrace();
-            View view = findViewById(android.R.id.content);
-            Snackbar.make(view, "encrypt failed!", Snackbar.LENGTH_SHORT).show();
-            return false;
         }
     }
 

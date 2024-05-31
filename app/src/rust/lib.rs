@@ -102,8 +102,8 @@ pub mod jni {
         }
 
         ///Demo method used to call functions in Rust from the Java app while testing
-        pub extern "jni" fn demoVerify(environment: &JNIEnv, data: Box<[u8]>) -> bool {
-            let result = Self::verify_signature(environment, data.as_ref(), data.as_ref());
+        pub extern "jni" fn demoVerify(environment: &JNIEnv, data: Box<[u8]>, signature: Box<[u8]>) -> bool {
+            let result = Self::verify_signature(environment, data.as_ref(), signature.as_ref());
             return match result {
                 Ok(value) => { value }
                 Err(_) => { false }

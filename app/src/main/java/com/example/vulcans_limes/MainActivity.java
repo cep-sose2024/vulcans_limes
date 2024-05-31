@@ -28,6 +28,7 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 
 
 /**
@@ -213,10 +214,12 @@ public class MainActivity extends AppCompatActivity {
             ContextWrapper contextWrapper = new ContextWrapper(getApplication());
             File txtDir = contextWrapper.getExternalFilesDir(Environment.DIRECTORY_DCIM);
             File unsignedTxtFile = new File(txtDir, "unsignedfile" + ".txt");
-            File signedTxtFile = new File(txtDir, "signedfile" + " .txt");
+            File signedTxtFile = new File(txtDir, "signedfile" + ".txt");
 
             byte[] unsignedBytes = text.getBytes(StandardCharsets.UTF_8);
             byte[] signedBytes = RustDef.demoSign(text.getBytes(StandardCharsets.UTF_8));
+            System.out.println("Unsigned Bytes in signText: " + Arrays.toString(unsignedBytes));
+            System.out.println("Signed Bytes in signTexgt: " + Arrays.toString(signedBytes));
             createFileFromByteArray(signedBytes, signedTxtFile);
             createFileFromByteArray(unsignedBytes, unsignedTxtFile);
             return true;
@@ -231,10 +234,12 @@ public class MainActivity extends AppCompatActivity {
             ContextWrapper contextWrapper = new ContextWrapper(getApplication());
             File txtDir = contextWrapper.getExternalFilesDir(Environment.DIRECTORY_DCIM);
             File unsignedTxtFile = new File(txtDir, "unsignedfile" + ".txt");
-            File signedTxtFile = new File(txtDir, "signedfile" + " .txt");
+            File signedTxtFile = new File(txtDir, "signedfile" + ".txt");
 
             byte[] unsignedBytes = toByteArray(unsignedTxtFile.getPath());
             byte[] signedBytes = toByteArray(signedTxtFile.getPath());
+            System.out.println("Unsigned Bytes in verifyText: " + Arrays.toString(unsignedBytes));
+            System.out.println("Signed Bytes in verifyText: " + Arrays.toString(signedBytes));
 
             return RustDef.demoVerify(unsignedBytes, signedBytes);
         } catch (Exception e) {

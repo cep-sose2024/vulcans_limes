@@ -139,9 +139,10 @@ public class CryptoManager {
         Cipher cipher = Cipher.getInstance(TRANSFORMATION);
         cipher.init(Cipher.ENCRYPT_MODE, secretKey);
         byte[] iv = cipher.getIV();
-
         if (TRANSFORMATION.contains("/GCM/")) {
             assert iv.length == 12; // GCM standard IV size is 12 Byte
+        } else if(TRANSFORMATION.contains("DESede")) {
+            assert iv.length == 8; // DES standard IV size is 8 Byte
         } else {
             assert iv.length == 16; // CBC & CTR standard IV size is 16 Byte
         }
@@ -195,7 +196,8 @@ public class CryptoManager {
             GCMParameterSpec gcmParameterSpec = new GCMParameterSpec(128, iv); // 128 is the recommended TagSize
             cipher.init(Cipher.DECRYPT_MODE, secretKey, gcmParameterSpec);
         } else {
-            iv = new byte[16]; // CBC & CTR standard IV size
+            if(TRANSFORMATION.contains("DESede")) iv = new byte[8]; // DES standard IV size
+            else iv = new byte[16]; // CBC & CTR standard IV size
             byteBuffer.get(iv);
             encryptedData = new byte[byteBuffer.remaining()];
             byteBuffer.get(encryptedData);

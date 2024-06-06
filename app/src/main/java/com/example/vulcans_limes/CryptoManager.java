@@ -33,6 +33,11 @@ import javax.crypto.SecretKeyFactory;
 import javax.crypto.spec.GCMParameterSpec;
 import javax.crypto.spec.IvParameterSpec;
 
+/**
+ * This class provides all the methods we need for communication with the keystore and cryptographic systems.
+ * It loads the keystore, generates and loads keys, encrypts and decrypts and signs and verifies.
+ *
+ */
 public class CryptoManager {
     private static final String ANDROID_KEY_STORE = "AndroidKeyStore";
     private final KeyStore keyStore;

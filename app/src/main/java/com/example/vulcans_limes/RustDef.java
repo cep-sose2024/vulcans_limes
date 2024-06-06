@@ -99,7 +99,8 @@ class RustDef {
      * <p>
      * This method generates a new cryptographic key within the TPM. The key is made persistent
      * and associated with the provided {@code key_id}, which uniquely identifies the key
-     * so that it can be retrieved later for cryptographic operations.
+     * so that it can be retrieved later for cryptographic operations, and {@code keyGenInfo},
+     * which holds the information about the key to be generated.
      *
      * @param key_id     a String that uniquely identifies the key to be created within the TPM.
      * @param keyGenInfo additional information required for key generation, specifying parameters such as
@@ -173,6 +174,8 @@ class RustDef {
      * @throws InvalidKeyException       if the key used for signing is invalid.
      * @throws InvalidKeySpecException   if the key specification is invalid.
      * @throws NoSuchProviderException   if the provider is not available.
+     * @throws CertificateException if there is an error processing certificates.
+     * @throws IOException if there is an I/O error while interacting with the keystore.
      * @throws CertificateException if there is an error processing certificates.
      * @throws IOException if there is an I/O error while interacting with the keystore.
      */
@@ -269,5 +272,4 @@ class RustDef {
             NoSuchProviderException {
         return cryptoManager.decryptData(encrypted_data);
     }
-
 }

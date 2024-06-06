@@ -1,5 +1,4 @@
 extern crate android_logger;
-#[macro_use]
 extern crate log;
 
 use robusta_jni::bridge;
@@ -24,7 +23,7 @@ pub mod jni {
         tpm::core::instance::{AndroidTpmType, TpmType},
     };
     use crypto_layer::common::crypto::algorithms::encryption::AsymmetricEncryption::Rsa;
-    use crypto_layer::common::crypto::algorithms::KeyBits::{Bits2048, Bits256};
+    use crypto_layer::common::crypto::algorithms::KeyBits::Bits2048;
     use log::{debug, LevelFilter};
     use robusta_jni::{
         convert::{IntoJavaValue, Signature, TryFromJavaValue, TryIntoJavaValue},

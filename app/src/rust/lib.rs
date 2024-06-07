@@ -122,7 +122,8 @@ pub mod jni {
 
             let config = Box::new(KnoxConfig::new(None,
                                                   Some(sym_key),
-                                                  environment.get_java_vm().unwrap()));
+                                                  environment.get_java_vm().unwrap())
+                .expect("Failed to create KnoxConfig"));
             module
                 .load_key(keyname, config)
                 .map_err(|err| return format!("Fail: {}", err)).unwrap();
@@ -148,7 +149,8 @@ pub mod jni {
             let keyname: &str = &format!("Asym{}", &Self::generate_unique_string());
             let config = Box::new(KnoxConfig::new(Some(asym_key),
                                                   None,
-                                                  environment.get_java_vm().unwrap()));
+                                                  environment.get_java_vm().unwrap())
+                .expect("Failed to create KnoxConfig"));
             module
                 .create_key(keyname, config)
                 .map_err(|err| return format!("Fail: {}", err)).unwrap();
@@ -157,7 +159,8 @@ pub mod jni {
 
             let config = Box::new(KnoxConfig::new(Some(asym_key),
                                                   None,
-                                                  environment.get_java_vm().unwrap()));
+                                                  environment.get_java_vm().unwrap())
+                .expect("Failed to create KnoxConfig"));
             module
                 .load_key(keyname, config)
                 .map_err(|err| return format!("Fail: {}", err)).unwrap();

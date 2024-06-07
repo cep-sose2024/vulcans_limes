@@ -69,17 +69,17 @@ class RustDef {
 
     static native String callRust();
 
-    static native byte[] demoEncrypt(byte[] data);
+    static native byte[] demoEncrypt(byte[] data, String key_id);
 
     static native void demoCreate(String key_id, String key_gen_info);
 
     static native void demoInit();
 
-    static native byte[] demoDecrypt(byte[] data);
+    static native byte[] demoDecrypt(byte[] data, String key_id);
 
-    static native byte[] demoSign(byte[] data);
+    static native byte[] demoSign(byte[] data, String key_id);
 
-    static native boolean demoVerify(byte[] data, byte[] signed_data);
+    static native boolean demoVerify(byte[] data, byte[] signed_data, String key_id);
 
     static native void demoLoad(String key_id);
 

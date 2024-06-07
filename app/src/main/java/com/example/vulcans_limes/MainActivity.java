@@ -2,6 +2,7 @@ package com.example.vulcans_limes;
 
 import android.app.AlertDialog;
 import android.content.ContextWrapper;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.database.Cursor;
 import android.graphics.Bitmap;
@@ -10,10 +11,13 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
 import android.provider.MediaStore;
+import android.view.LayoutInflater;
 import android.view.View;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
+import android.widget.Spinner;
 import android.widget.Toast;
 
 import androidx.activity.result.ActivityResultLauncher;
@@ -44,9 +48,7 @@ public class MainActivity extends AppCompatActivity {
 
     private ImageView imageView;
     private ActivityResultLauncher<Intent> launcher;
-    private CryptoManager cm;
-
-
+    private String key_id;
     /**
      * This will run upon starting the app. It initializes the screen with its components.
      *
@@ -61,6 +63,7 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        // initialize buttons
         imageView = findViewById(R.id.idIVimage);
         Button encButton = findViewById(R.id.idBtnEncrypt);
         Button decButton = findViewById(R.id.idBtnDecrypt);
@@ -69,6 +72,32 @@ public class MainActivity extends AppCompatActivity {
         Button signButton = findViewById(R.id.idBtnSign);
         Button verifyButton = findViewById(R.id.idBtnVerify);
         Button testButton = findViewById(R.id.idBtnTest);
+
+        final String[] algorithms = {
+                // RSA algorithms
+                "RSA;512;SHA-256;PKCS1",
+                "RSA;1024;SHA-256;PKCS1",
+                "RSA;2048;SHA-256;PKCS1",
+                "RSA;3072;SHA-256;PKCS1",
+                "RSA;4096;SHA-256;PKCS1",
+                "RSA;8192;SHA-256;PKCS1",
+                // EC algorithms
+                "EC;secp256r1;SHA-256",
+                "EC;secp384r1;SHA-256",
+                "EC;secp521r1;SHA-256",
+                // 3DES algorithms
+                "DESede;168;CBC;PKCS7Padding",
+                // AES algorithms
+                "AES;128;GCM;NoPadding",
+                "AES;128;CBC;PKCS7Padding",
+                "AES;128;CTR;NoPadding",
+                "AES;192;GCM;NoPadding",
+                "AES;192;CBC;PKCS7Padding",
+                "AES;192;CTR;NoPadding",
+                "AES;256;GCM;NoPadding",
+                "AES;256;CBC;PKCS7Padding",
+                "AES;256;CTR;NoPadding"
+        };
 
         // Activity for encryption on button press
         launcher = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
@@ -108,9 +137,9 @@ public class MainActivity extends AppCompatActivity {
                 final EditText input = new EditText(this);
                 builder.setView(input);
                 builder.setPositiveButton("OK", (dialog, which) -> {
-                    String keyId = input.getText().toString();
-                    RustDef.demoLoad(keyId);
-                    Snackbar.make(v, "The key with ID \"" + keyId + "\" was successfully loaded!", Snackbar.LENGTH_SHORT).show();
+                    key_id = input.getText().toString();
+                    RustDef.demoLoad(key_id);
+                    Snackbar.make(v, "The key with ID \"" + key_id + "\" was successfully loaded!", Snackbar.LENGTH_SHORT).show();
                 });
                 builder.setNegativeButton("Cancel", (dialog, which) -> dialog.cancel());
                 builder.show();
@@ -123,43 +152,35 @@ public class MainActivity extends AppCompatActivity {
 
         //When create key button is pressed
         createButton.setOnClickListener(v -> {
-            try {
-                AlertDialog.Builder builder = new AlertDialog.Builder(this);
-                builder.setTitle("Name the ID of the key to create:");
-                final EditText input = new EditText(this);
-                builder.setView(input);
-                builder.setPositiveButton("OK", (dialog, which) -> {
-                    String keyId = input.getText().toString();
-                    // generate symmetric key
-                    String keyGenInfoSYM = "AES;256;GCM;NoPadding";
-                    RustDef.demoCreate(keyId, keyGenInfoSYM);
-                    Snackbar.make(v, "The key with ID \"" + keyId + "\" was successfully created!", Snackbar.LENGTH_SHORT).show();
+            AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
+            LayoutInflater inflater = getLayoutInflater();
 
-                });
-                builder.setNegativeButton("Cancel", (dialog, which) -> dialog.cancel());
-                builder.show();
+            View dialogView = inflater.inflate(R.layout.dialog_layout, null);
 
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
+            Spinner spinnerAlgorithm = dialogView.findViewById(R.id.spinnerAlgorithm);
+            ArrayAdapter<String> adapter = new ArrayAdapter<>(MainActivity.this, android.R.layout.simple_spinner_item, algorithms);
+            adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+            spinnerAlgorithm.setAdapter(adapter);
+
+            // Set up the AlertDialog
+            builder.setView(dialogView)
+                    .setPositiveButton("OK", (dialog, id) -> {
+                        EditText keyNameInput = dialogView.findViewById(R.id.keyNameInput);
+                        key_id = keyNameInput.getText().toString();
+                        String selectedAlgorithm = spinnerAlgorithm.getSelectedItem().toString();
+                        RustDef.demoCreate(key_id, selectedAlgorithm);
+                        Toast.makeText(MainActivity.this, "Key created with name: " + key_id+ ", using algorithm: " + selectedAlgorithm, Toast.LENGTH_LONG).show();
+                    })
+                    .setNegativeButton("Cancel", (dialog, id) -> dialog.dismiss());
+
+            // Create and show the AlertDialog
+            AlertDialog dialog = builder.create();
+            dialog.show();
         });
 
         //When sign button is pressed
         signButton.setOnClickListener(v -> {
             try {
-
-                AlertDialog.Builder builder2 = new AlertDialog.Builder(this);
-                builder2.setTitle("Name the ID of the key pair to create:");
-                final EditText input2 = new EditText(this);
-                builder2.setView(input2);
-                builder2.setPositiveButton("OK", (dialog, which) -> {
-                    String keyId = input2.getText().toString();
-                    // generate asymmetric key
-                    String keyGenInfoASYM = "RSA;2048;SHA-256;PKCS1";
-                    RustDef.demoCreate(keyId, keyGenInfoASYM);
-                    Snackbar.make(v, "The KeyPair with ID \"" + keyId + "\" was successfully created!", Snackbar.LENGTH_SHORT).show();
-                });
-
                 AlertDialog.Builder builder = new AlertDialog.Builder(this);
                 builder.setTitle("Set the Text to Sign:");
                 final EditText input = new EditText(this);
@@ -179,9 +200,7 @@ public class MainActivity extends AppCompatActivity {
                 });
 
                 builder.setNegativeButton("Cancel", (dialog, which) -> dialog.cancel());
-                builder2.setNegativeButton("Cancel", (dialog, which) -> dialog.cancel());
                 builder.show();
-                builder2.show();
 
 
             } catch (Exception e) {
@@ -215,7 +234,7 @@ public class MainActivity extends AppCompatActivity {
             File signedTxtFile = new File(txtDir, "signedfile" + ".txt");
 
             byte[] unsignedBytes = text.getBytes(StandardCharsets.UTF_8);
-            byte[] signedBytes = RustDef.demoSign(text.getBytes(StandardCharsets.UTF_8));
+            byte[] signedBytes = RustDef.demoSign(text.getBytes(StandardCharsets.UTF_8), key_id);
 
             createFileFromByteArray(signedBytes, signedTxtFile);
             createFileFromByteArray(unsignedBytes, unsignedTxtFile);
@@ -235,7 +254,7 @@ public class MainActivity extends AppCompatActivity {
 
             byte[] unsignedBytes = toByteArray(unsignedTxtFile.getPath());
             byte[] signedBytes = toByteArray(signedTxtFile.getPath());
-            return RustDef.demoVerify(unsignedBytes, signedBytes);
+            return RustDef.demoVerify(unsignedBytes, signedBytes, key_id);
         } catch (Exception e) {
             e.printStackTrace();
             return false;
@@ -248,7 +267,7 @@ public class MainActivity extends AppCompatActivity {
             ContextWrapper contextWrapper = new ContextWrapper(getApplication());
             File photoDir = contextWrapper.getExternalFilesDir(Environment.DIRECTORY_DCIM);
             File encFile = new File(photoDir, "encfile" + ".jpg");
-            byte[] encryptedData = RustDef.demoEncrypt(toByteArray(path));
+            byte[] encryptedData = RustDef.demoEncrypt(toByteArray(path), key_id);
 
             createFileFromByteArray(encryptedData, encFile);
 
@@ -271,7 +290,7 @@ public class MainActivity extends AppCompatActivity {
 
         File decFile = new File(photoDir, "decfile.jpg");
 
-        byte[] decBytes = RustDef.demoDecrypt(bytes);
+        byte[] decBytes = RustDef.demoDecrypt(bytes, key_id);
         createFileFromByteArray(decBytes, decFile);
 
 

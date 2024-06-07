@@ -113,7 +113,8 @@ pub mod jni {
             let keyname: &str = &Self::generate_unique_string();
             let config = Box::new(KnoxConfig::new(None,
                                                   Some(sym_key),
-                                                  environment.get_java_vm().unwrap()));
+                                                  environment.get_java_vm().unwrap())
+                .expect("Failed to create KnoxConfig"));
             let result = module.create_key(keyname, config);
             if result.is_err() { return format!("Create key failed: {:?}", result.unwrap_err()); };
             passed = Self::check(environment, passed).map_err(|err| return err).unwrap();

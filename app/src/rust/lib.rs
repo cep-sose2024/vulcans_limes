@@ -10,20 +10,33 @@ pub mod jni {
     use android_logger::Config;
     use crypto_layer::{
         common::{
+            factory::SecurityModule,
             crypto::{
                 algorithms::{
-                    encryption::{BlockCiphers::Aes, SymmetricMode},
-                    KeyBits::Bits128,
+                    encryption::{
+                        SymmetricMode::Gcm,
+                        BlockCiphers,
+                        EccCurves,
+                        EccSchemeAlgorithm,
+                        BlockCiphers::Aes,
+                        SymmetricMode,
+                        AsymmetricEncryption::{Ecc, Rsa}
+                    },
+                    KeyBits::{
+                        Bits128,
+                        self,
+                        Bits2048
+                    }
                 }
-            },
-            factory::SecurityModule,
+            }
         },
         SecModules,
-        tpm::android::knox::KnoxConfig,
-        tpm::core::instance::{AndroidTpmType, TpmType},
+        tpm::{
+            android::knox::KnoxConfig,
+            core::instance::{AndroidTpmType, TpmType}
+        }
     };
-    use crypto_layer::common::crypto::algorithms::encryption::AsymmetricEncryption::Rsa;
-    use crypto_layer::common::crypto::algorithms::KeyBits::Bits2048;
+    use crypto_layer::common::crypto::algorithms::encryption::SymmetricMode::Cbc;
     use log::{debug, LevelFilter};
     use robusta_jni::{
         convert::{IntoJavaValue, Signature, TryFromJavaValue, TryIntoJavaValue},
@@ -85,14 +98,14 @@ pub mod jni {
         ///Tests all functions through the abstraction layer
         pub extern "jni" fn callRust(environment: &JNIEnv) -> String {
             //Settings for the Test
-            let sym_key = Aes(SymmetricMode::Cbc, Bits128); //Key to be used for symmetric encryption
+            let sym_key = Aes(Cbc, Bits128); //Key to be used for symmetric encryption
             let asym_key = Rsa(Bits2048); //Key to be used for asymmetric encryption
             let clear_data: &[u8] = &[1, 0, 255]; //Data to be symmetrically encrypted
             let sign_data: &[u8] = &[1, 0, 255]; //Data to be signed by the asym key
 
             // Enable Console Output to be printed to Logcat
             android_logger::init_once(
-                Config::default().with_max_level(LevelFilter::Info),
+                Config::default().with_max_level(LevelFilter::Debug),
             );
             let mut passed = 0;
 
@@ -146,7 +159,8 @@ pub mod jni {
 
 
             debug!("Starting asym key generation");
-            let keyname: &str = &format!("Asym{}", &Self::generate_unique_string());
+            // let keyname: &str = &format!("Asym{}", &Self::generate_unique_string());
+            let keyname = "tmp2";
             let config = Box::new(KnoxConfig::new(Some(asym_key),
                                                   None,
                                                   environment.get_java_vm().unwrap())
@@ -183,56 +197,185 @@ pub mod jni {
             return format!("Successfully completed {} tasks, 0 fails", passed);
         }
 
-
-
         pub extern "jni" fn demoCreate(environment: &JNIEnv, key_id: String, key_gen_info: String) -> () {
-            Self::create_key(environment, key_id, key_gen_info).unwrap();
-            let _ = Self::check_java_exceptions(environment);
+            android_logger::init_once(
+                Config::default().with_max_level(LevelFilter::Debug),
+            );
+            let parts = key_gen_info.split(';').collect::<Vec<&str>>();
+            debug!("parts: {:?}", parts);
+            let mut symmetric = true;
+            let mut asym_key_type = Rsa(Bits2048);
+            let mut sym_key_type= Aes(Gcm, Bits128);
+             match parts[0] {
+                "RSA" => {
+                    let bitslength = match parts[1] {
+                        "512" => KeyBits::Bits512,
+                        "1024" => KeyBits::Bits1024,
+                        "2048" => KeyBits::Bits2048,
+                        "3072" => KeyBits::Bits3072,
+                        "4096" => KeyBits::Bits4096,
+                        "8192" => KeyBits::Bits8192,
+                        _ => KeyBits::Bits8192,
+                    };
+                    symmetric = false;
+                    asym_key_type = Rsa(bitslength)
+                }
+                "EC" => {
+                    let curve = match parts[1] {
+                        "secp256r1" => EccCurves::P256,
+                        "secp384r1" => EccCurves::P384,
+                        "secp521r1" => EccCurves::P521,
+                        _ => EccCurves::P521,
+                    };
+                    symmetric = false;
+                    asym_key_type = Ecc(EccSchemeAlgorithm::EcDsa(curve))
+                }
+                "DESede" => {
+                    symmetric = true;
+                    sym_key_type = BlockCiphers::Des
+                }
+                "AES" => {
+                    let bitslength = match parts[1] {
+                        "128" => KeyBits::Bits128,
+                        "192" => KeyBits::Bits192,
+                        "256" => KeyBits::Bits256,
+                        _ => KeyBits::Bits256,
+                    };
+                    let mode = match parts[2] {
+                        "GCM" => SymmetricMode::Gcm,
+                        "CBC" => SymmetricMode::Cbc,
+                        "CTR" => SymmetricMode::Ctr,
+                        _ =>  SymmetricMode::Ctr,
+                    };
+                    symmetric = true;
+                    sym_key_type = Aes(mode, bitslength)
+                }
+                 _ => {}
+             }
+
+            let instance = SecModules::get_instance(
+                "test_key".to_owned(),
+                SecurityModule::Tpm(TpmType::Android(AndroidTpmType::Knox)),
+                None).unwrap();
+            let mut module = instance.lock().unwrap();
+            debug!("created provider");
+
+            module
+                .initialize_module()
+                .expect("Failed to initialize module");
+            debug!("init module done");
+
+            let config;
+            if symmetric{
+                config = Box::new(KnoxConfig::new(None,
+                                                  Some(sym_key_type),
+                                                  environment.get_java_vm().unwrap())
+                    .expect("Failed to create KnoxConfig"));
+            }else{
+                config = Box::new(KnoxConfig::new(Some(asym_key_type),
+                                                  None,
+                                                  environment.get_java_vm().unwrap())
+                    .expect("Failed to create KnoxConfig"));
+
+            }
+            debug!("config: {:?}", config);
+            let result = module.create_key(&key_id, config);
+            if result.is_err() { return; };
+            debug!("create sym key done");
         }
 
-        pub extern "jni" fn demoInit(environment: &JNIEnv) -> () {
+        pub extern "jni" fn demoInit(_environment: &JNIEnv) -> () {
             // Enable Console Output to be printed to Logcat
             android_logger::init_once(
-                Config::default().with_max_level(LevelFilter::Trace),
+                Config::default().with_max_level(LevelFilter::Debug),
             );
-            let _ = Self::initialize_module(environment);
-            let _ = Self::check_java_exceptions(environment);
         }
 
         pub extern "jni" fn demoLoad(environment: &JNIEnv, key_id: String) -> () {
-            let _ = Self::load_key(environment, key_id);
-            let _ = Self::check_java_exceptions(environment);
+
+            let instance = SecModules::get_instance(
+                "test_key".to_owned(),
+                SecurityModule::Tpm(TpmType::Android(AndroidTpmType::Knox)),
+                None).unwrap();
+            let mut module = instance.lock().unwrap();
+            debug!("created provider");
+
+            let config = Box::new(KnoxConfig::new(None,
+                                                  Some(Aes(Gcm,Bits128)), //type doesn't matter, is ignored after key was created
+                                                  environment.get_java_vm().unwrap())
+                .expect("Failed to create KnoxConfig"));
+            module.load_key(&key_id, config).unwrap()
         }
 
         /// Is called to Demo Encryption from Rust
-        pub extern "jni" fn demoEncrypt(environment: &JNIEnv, data: Box<[u8]>) -> Box<[u8]> {
-            let result = Self::encrypt_data(environment, data.as_ref())
-                .expect("Sign_data failed");
-            let _ = Self::check_java_exceptions(environment);
-            result.into_boxed_slice()
+        pub extern "jni" fn demoEncrypt(environment: &JNIEnv, data: Box<[u8]>, key_id: String) -> Box<[u8]> {
+            let instance = SecModules::get_instance(
+                "test_key".to_owned(),
+                SecurityModule::Tpm(TpmType::Android(AndroidTpmType::Knox)),
+                None).unwrap();
+            let mut module = instance.lock().unwrap();
+            debug!("created provider");
+
+            let config = Box::new(KnoxConfig::new(None,
+                                                  Some(Aes(Gcm,Bits128)), //type doesn't matter, is ignored after key was created
+                                                  environment.get_java_vm().unwrap())
+                .expect("Failed to create KnoxConfig"));
+            module.load_key(&key_id, config).unwrap();
+            module.encrypt_data(&*data).unwrap().into_boxed_slice()
         }
 
-        pub extern "jni" fn demoDecrypt(environment: &JNIEnv, data: Box<[u8]>) -> Box<[u8]> {
-            let result = Self::decrypt_data(environment, data.as_ref());
-            let _ = Self::check_java_exceptions(environment);
-            return match result {
-                Ok(res) => { res.into_boxed_slice() }
-                Err(_) => { Vec::new().into_boxed_slice() }
-            };
+        pub extern "jni" fn demoDecrypt(environment: &JNIEnv, data: Box<[u8]>, key_id: String) -> Box<[u8]> {
+            let instance = SecModules::get_instance(
+                "test_key".to_owned(),
+                SecurityModule::Tpm(TpmType::Android(AndroidTpmType::Knox)),
+                None).unwrap();
+            let mut module = instance.lock().unwrap();
+            debug!("created provider");
+
+            let config = Box::new(KnoxConfig::new(None,
+                                                  Some(Aes(Gcm,Bits128)), //type doesn't matter, is ignored after key was created
+                                                  environment.get_java_vm().unwrap())
+                .expect("Failed to create KnoxConfig"));
+            module.load_key(&key_id, config).unwrap();
+            module.decrypt_data(&*data).unwrap().into_boxed_slice()
         }
 
-        pub extern "jni" fn demoSign(environment: &JNIEnv, data: Box<[u8]>) -> Box<[u8]> {
-            let result = Self::sign_data(environment, data.as_ref())
-                .expect("Sign_data failed");
-            result.into_boxed_slice()
+        pub extern "jni" fn demoSign(environment: &JNIEnv, data: Box<[u8]>, key_id: String) -> Box<[u8]> {
+            android_logger::init_once(
+                Config::default().with_max_level(LevelFilter::max()),
+            );
+            debug!("key_id: {:?}", key_id);
+
+            let instance = SecModules::get_instance(
+                "test_key".to_owned(),
+                SecurityModule::Tpm(TpmType::Android(AndroidTpmType::Knox)),
+                None).unwrap();
+            let mut module = instance.lock().unwrap();
+            debug!("created provider");
+
+            let config = Box::new(KnoxConfig::new(
+                Some(Rsa(Bits2048)),
+                None, //type doesn't matter, is ignored after key was created
+                environment.get_java_vm().unwrap())
+                .expect("Failed to create KnoxConfig"));
+            module.load_key(&key_id, config).unwrap();
+            module.sign_data(&*data).unwrap().into_boxed_slice()
         }
 
-        pub extern "jni" fn demoVerify(environment: &JNIEnv, data: Box<[u8]>) -> bool {
-            let result = Self::verify_signature(environment, data.as_ref(), data.as_ref());
-            return match result {
-                Ok(value) => { value }
-                Err(_) => { false }
-            };
+        pub extern "jni" fn demoVerify(environment: &JNIEnv, data: Box<[u8]>, signed_data: Box<[u8]>, key_id: String) -> bool {
+            let instance = SecModules::get_instance(
+                "test_key".to_owned(),
+                SecurityModule::Tpm(TpmType::Android(AndroidTpmType::Knox)),
+                None).unwrap();
+            let mut module = instance.lock().unwrap();
+            debug!("created provider");
+
+            let config = Box::new(KnoxConfig::new(None,
+                                                  Some(Aes(Gcm,Bits128)), //type doesn't matter, is ignored after key was created
+                                                  environment.get_java_vm().unwrap())
+                .expect("Failed to create KnoxConfig"));
+            module.load_key(&key_id, config).unwrap();
+            module.verify_signature(&*data, &*signed_data).unwrap()
         }
 
 
@@ -667,7 +810,7 @@ pub mod jni {
         }
 
         ///This function returns a new String with the current time since Unix epoch
-        /// This is only used during testing to generate an new key_id without the need for manual input
+        /// This is only used during testing to generate a new key_id without the need for manual input
         fn generate_unique_string() -> String {
             let since_the_epoch = SystemTime::now().duration_since(UNIX_EPOCH).expect("Time went backwards");
             let seconds_since_epoch = since_the_epoch.as_secs();

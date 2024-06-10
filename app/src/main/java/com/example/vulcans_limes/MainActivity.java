@@ -2,7 +2,6 @@ package com.example.vulcans_limes;
 
 import android.app.AlertDialog;
 import android.content.ContextWrapper;
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.database.Cursor;
 import android.graphics.Bitmap;
@@ -18,7 +17,6 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.Spinner;
-import android.widget.Toast;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
@@ -32,7 +30,6 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
 
 
 /**
@@ -44,7 +41,6 @@ import java.util.Arrays;
  * @author Erik Fribus
  */
 public class MainActivity extends AppCompatActivity {
-
 
     private ImageView imageView;
     private ActivityResultLauncher<Intent> launcher;
@@ -58,7 +54,6 @@ public class MainActivity extends AppCompatActivity {
      */
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-//        RustDef.demoInit();
 
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
@@ -75,12 +70,7 @@ public class MainActivity extends AppCompatActivity {
 
         final String[] algorithms = {
                 // RSA algorithms
-                "RSA;512;SHA-256;PKCS1",
-                "RSA;1024;SHA-256;PKCS1",
                 "RSA;2048;SHA-256;PKCS1",
-                "RSA;3072;SHA-256;PKCS1",
-                "RSA;4096;SHA-256;PKCS1",
-                "RSA;8192;SHA-256;PKCS1",
                 // EC algorithms
                 "EC;secp256r1;SHA-256",
                 "EC;secp384r1;SHA-256",
@@ -120,11 +110,11 @@ public class MainActivity extends AppCompatActivity {
         decButton.setOnClickListener(v -> {
             try {
                 if (decryptPicture()) {
-                    Toast.makeText(MainActivity.this, "Successful decrypt!", Toast.LENGTH_SHORT).show();
+                    Snackbar.make(v, "Successful decrypt!", Snackbar.LENGTH_LONG).show();
                 }
 
             } catch (Exception e) {
-                Toast.makeText(MainActivity.this, "Fail to decrypt image", Toast.LENGTH_SHORT).show();
+                Snackbar.make(v, "Fail to decrypt image!", Snackbar.LENGTH_LONG).show();
                 e.printStackTrace();
             }
         });
@@ -139,7 +129,7 @@ public class MainActivity extends AppCompatActivity {
                 builder.setPositiveButton("OK", (dialog, which) -> {
                     key_id = input.getText().toString();
                     RustDef.demoLoad(key_id);
-                    Snackbar.make(v, "The key with ID \"" + key_id + "\" was successfully loaded!", Snackbar.LENGTH_SHORT).show();
+                    Snackbar.make(v, "Key with ID \"" + key_id + "\" was successfully loaded!", Snackbar.LENGTH_LONG).show();
                 });
                 builder.setNegativeButton("Cancel", (dialog, which) -> dialog.cancel());
                 builder.show();
@@ -169,7 +159,7 @@ public class MainActivity extends AppCompatActivity {
                         key_id = keyNameInput.getText().toString();
                         String selectedAlgorithm = spinnerAlgorithm.getSelectedItem().toString();
                         RustDef.demoCreate(key_id, selectedAlgorithm);
-                        Toast.makeText(MainActivity.this, "Key created with name: " + key_id+ ", using algorithm: " + selectedAlgorithm, Toast.LENGTH_LONG).show();
+                        Snackbar.make(v, "Key was successfully created!", Snackbar.LENGTH_LONG).show();
                     })
                     .setNegativeButton("Cancel", (dialog, id) -> dialog.dismiss());
 
@@ -187,14 +177,12 @@ public class MainActivity extends AppCompatActivity {
                 builder.setView(input);
                 builder.setPositiveButton("OK", (dialog, which) -> {
                     String signText = input.getText().toString();
-                    Snackbar.make(v, "Signing Text...", Snackbar.LENGTH_SHORT).show();
-
                     try {
                         if (signText(signText)) {
-                            Toast.makeText(this, "Text signed..", Toast.LENGTH_SHORT).show();
+                            Snackbar.make(v, "Text signed!", Snackbar.LENGTH_LONG).show();
                         }
                     } catch (IOException e) {
-                        Toast.makeText(this, "Fail to sign Text: " + e, Toast.LENGTH_SHORT).show();
+                        Snackbar.make(v, "Fail to sign Text: " + e, Snackbar.LENGTH_LONG).show();
                         e.printStackTrace();
                     }
                 });
@@ -212,12 +200,11 @@ public class MainActivity extends AppCompatActivity {
         verifyButton.setOnClickListener(v -> {
             try {
                 if (verifyText())
-                    Toast.makeText(MainActivity.this, "Successful verify!", Toast.LENGTH_SHORT).show();
+                    Snackbar.make(v, "Successful verify!", Snackbar.LENGTH_LONG).show();
                 else
-                    Toast.makeText(MainActivity.this, "Fail to verify Text", Toast.LENGTH_SHORT).show();
+                    Snackbar.make(v, "Failed to verify Text", Snackbar.LENGTH_LONG).show();
 
             } catch (Exception e) {
-                Toast.makeText(MainActivity.this, "Fail to verify Text", Toast.LENGTH_SHORT).show();
                 e.printStackTrace();
             }
 
@@ -274,8 +261,6 @@ public class MainActivity extends AppCompatActivity {
             return true;
         } catch (Exception e) {
             e.printStackTrace();
-            View view = findViewById(android.R.id.content);
-            Snackbar.make(view, "encrypt failed!", Snackbar.LENGTH_SHORT).show();
             return false;
         }
     }
@@ -320,12 +305,14 @@ public class MainActivity extends AppCompatActivity {
             cursor.close();
 
             try {
-                if (pictureEncrypt(picPath)) {
-                    Toast.makeText(this, "Image encrypted..", Toast.LENGTH_SHORT).show();
-                }
+                View view = findViewById(android.R.id.content);
+
+                if(pictureEncrypt(picPath)) {
+                    Snackbar.make(view, "Successful encrypt!", Snackbar.LENGTH_LONG).show();
+                } else Snackbar.make(view, "Failed to encrypt!", Snackbar.LENGTH_LONG).show();
             } catch (Exception e) {
                 e.printStackTrace();
-                Toast.makeText(this, "Fail to encrypt image : " + e, Toast.LENGTH_SHORT).show();
+
             }
         }
     }
@@ -346,14 +333,12 @@ public class MainActivity extends AppCompatActivity {
 
     private void createFileFromByteArray(byte[] bytes, File file) {
         FileOutputStream fos = null;
+
         try {
             fos = new FileOutputStream(file);
             fos.write(bytes);
-            Toast.makeText(this, "File created successfully at: " + file.getPath(), Toast.LENGTH_SHORT).show();
-            System.out.println("File created successfully at: " + file.getPath());
         } catch (IOException e) {
             e.printStackTrace();
-            Toast.makeText(this, "Failed to create file at " + file.getPath() + ": " + e.getMessage(), Toast.LENGTH_SHORT).show();
         } finally {
             if (fos != null) {
                 try {

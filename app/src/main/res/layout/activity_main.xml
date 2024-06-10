@@ -28,6 +28,7 @@
             android:layout_width="160dp"
             android:layout_height="wrap_content"
             android:layout_margin="10dp"
+            android:backgroundTint="#f0780b"
             android:text="Encrypt" />
 
         <!-- Button to decrypt the image -->
@@ -36,6 +37,7 @@
             android:layout_width="160dp"
             android:layout_height="wrap_content"
             android:layout_margin="10dp"
+            android:backgroundTint="#f0780b"
             android:text="Decrypt" />
     </LinearLayout>
 
@@ -55,6 +57,7 @@
             android:layout_width="160dp"
             android:layout_height="wrap_content"
             android:layout_margin="10dp"
+            android:backgroundTint="#f0780b"
             android:text="Load key" />
 
         <!-- Button to create the key -->
@@ -63,6 +66,7 @@
             android:layout_width="160dp"
             android:layout_height="wrap_content"
             android:layout_margin="10dp"
+            android:backgroundTint="#f0780b"
             android:text="Create key" />
     </LinearLayout>
 
@@ -81,6 +85,7 @@
             android:layout_width="160dp"
             android:layout_height="wrap_content"
             android:layout_margin="10dp"
+            android:backgroundTint="#f0780b"
             android:text="Sign" />
 
         <!-- Button to verify -->
@@ -89,6 +94,7 @@
             android:layout_width="160dp"
             android:layout_height="wrap_content"
             android:layout_margin="10dp"
+            android:backgroundTint="#f0780b"
             android:text="Verify" />
     </LinearLayout>
 
@@ -107,6 +113,7 @@
             android:layout_width="90dp"
             android:layout_height="wrap_content"
             android:layout_margin="10dp"
+            android:backgroundTint="#f0780b"
             android:text="Test" />
     </LinearLayout>
 

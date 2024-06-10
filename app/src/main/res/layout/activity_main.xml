@@ -13,41 +13,11 @@
         android:layout_margin="10dp"
         android:padding="10dp" />
 
-    <!-- Group of Encrypt and Decrypt buttons -->
     <LinearLayout
         android:id="@+id/linearLayout1"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_below="@+id/idIVimage"
-        android:layout_centerInParent="true"
-        android:orientation="horizontal">
-
-        <!-- Button to encrypt the image -->
-        <Button
-            android:id="@+id/idBtnEncrypt"
-            android:layout_width="160dp"
-            android:layout_height="wrap_content"
-            android:layout_margin="10dp"
-            android:backgroundTint="#f0780b"
-            android:text="Encrypt" />
-
-        <!-- Button to decrypt the image -->
-        <Button
-            android:id="@+id/idBtnDecrypt"
-            android:layout_width="160dp"
-            android:layout_height="wrap_content"
-            android:layout_margin="10dp"
-            android:backgroundTint="#f0780b"
-            android:text="Decrypt" />
-    </LinearLayout>
-
-
-    <!-- Group of Load and Create buttons -->
-    <LinearLayout
-        android:id="@+id/linearLayout2"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_below="@+id/linearLayout1"
         android:layout_centerInParent="true"
         android:orientation="horizontal">
 
@@ -57,7 +27,7 @@
             android:layout_width="160dp"
             android:layout_height="wrap_content"
             android:layout_margin="10dp"
-            android:backgroundTint="#f0780b"
+            android:backgroundTint="#F849A3"
             android:text="Load key" />
 
         <!-- Button to create the key -->
@@ -66,16 +36,16 @@
             android:layout_width="160dp"
             android:layout_height="wrap_content"
             android:layout_margin="10dp"
-            android:backgroundTint="#f0780b"
+            android:backgroundTint="#FFF849A3"
             android:text="Create key" />
+
     </LinearLayout>
 
-    <!-- Group of Sign and Verify-->
     <LinearLayout
-        android:id="@+id/linearLayout3"
+        android:id="@+id/linearLayout2"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_below="@+id/linearLayout2"
+        android:layout_below="@+id/linearLayout1"
         android:layout_centerInParent="true"
         android:orientation="horizontal">
 
@@ -88,6 +58,27 @@
             android:backgroundTint="#f0780b"
             android:text="Sign" />
 
+        <!-- Button to encrypt the image -->
+        <Button
+            android:id="@+id/idBtnEncrypt"
+            android:layout_width="160dp"
+            android:layout_height="wrap_content"
+            android:layout_margin="10dp"
+            android:backgroundTint="#00BCD4"
+            android:text="Encrypt" />
+
+
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/linearLayout3"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@+id/linearLayout2"
+        android:layout_centerInParent="true"
+        android:orientation="horizontal">
+
+
         <!-- Button to verify -->
         <Button
             android:id="@+id/idBtnVerify"
@@ -96,9 +87,20 @@
             android:layout_margin="10dp"
             android:backgroundTint="#f0780b"
             android:text="Verify" />
+
+        <!-- Button to decrypt the image -->
+        <Button
+            android:id="@+id/idBtnDecrypt"
+            android:layout_width="160dp"
+            android:layout_height="wrap_content"
+            android:layout_margin="10dp"
+            android:backgroundTint="#00BCD4"
+            android:text="Decrypt" />
+
     </LinearLayout>
 
-    <!-- Group of test -->
+
+
     <LinearLayout
         android:id="@+id/linearLayout4"
         android:layout_width="match_parent"

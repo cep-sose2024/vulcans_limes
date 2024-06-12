@@ -102,24 +102,17 @@ public class MainActivity extends AppCompatActivity {
 
         // When encrypt button is pressed
         encButton.setOnClickListener(v -> {
-            try {
                 Intent intent = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
                 launcher.launch(intent);
-                Snackbar.make(v, "Picture encrypted!", Snackbar.LENGTH_LONG).show();
-
-            } catch (Exception e){
-                e.printStackTrace();
-                Snackbar.make(v, "Encrypt failed, please check key.", Snackbar.LENGTH_LONG).show();
-
-            }
         });
 
         // When decrypt button is pressed
         decButton.setOnClickListener(v -> {
             try {
-                if (decryptPicture()) {
+                if (decryptPicture())
                     Snackbar.make(v, "Picture decrypted!", Snackbar.LENGTH_LONG).show();
-                }
+                else
+                    Snackbar.make(v, "Failed to decrypt image!", Snackbar.LENGTH_LONG).show();
 
             } catch (Exception e) {
                 Snackbar.make(v, "Failed to decrypt image!", Snackbar.LENGTH_LONG).show();
@@ -137,9 +130,10 @@ public class MainActivity extends AppCompatActivity {
                 builder.setPositiveButton("OK", (dialog, which) -> {
                     key_id = input.getText().toString();
                     try{
-                        RustDef.demoLoad(key_id);
-                        Snackbar.make(v, "Key with ID " + key_id + " was successfully loaded!", Snackbar.LENGTH_LONG).show();
-
+                        if(RustDef.demoLoad(key_id))
+                            Snackbar.make(v, "Key with ID " + key_id + " was successfully loaded!", Snackbar.LENGTH_LONG).show();
+                        else
+                            Snackbar.make(v, "Key with ID " + key_id + " does not exist.", Snackbar.LENGTH_LONG).show();
                     } catch(Exception e){
                         e.printStackTrace();
                         Snackbar.make(v, "Key with ID " + key_id + " does not exist.", Snackbar.LENGTH_LONG).show();
@@ -173,9 +167,11 @@ public class MainActivity extends AppCompatActivity {
                         try {
                             key_id = keyNameInput.getText().toString();
                             String selectedAlgorithm = spinnerAlgorithm.getSelectedItem().toString();
-                            RustDef.demoCreate(key_id, selectedAlgorithm);
-                            Snackbar.make(v, "Key "+ key_id +" was created!", Snackbar.LENGTH_LONG).show();
-                        } catch(Exception e){
+                            if(RustDef.demoCreate(key_id, selectedAlgorithm))
+                                Snackbar.make(v, "Key "+ key_id +" was created!", Snackbar.LENGTH_LONG).show();
+                            else
+                                Snackbar.make(v, "Key "+ key_id +" already exists.", Snackbar.LENGTH_LONG).show();
+                        } catch(Exception e) {
                             e.printStackTrace();
                             Snackbar.make(v, "Key "+ key_id +" already exists.", Snackbar.LENGTH_LONG).show();
                         }
@@ -197,9 +193,10 @@ public class MainActivity extends AppCompatActivity {
                 builder.setPositiveButton("OK", (dialog, which) -> {
                     String signText = input.getText().toString();
                     try {
-                        if (signText(signText)) {
+                        if (signText(signText))
                             Snackbar.make(v, "Text signed!", Snackbar.LENGTH_LONG).show();
-                        }
+                        else
+                            Snackbar.make(v, "Failed to sign Text.", Snackbar.LENGTH_LONG).show();
                     } catch (IOException e) {
                         Snackbar.make(v, "Failed to sign Text.", Snackbar.LENGTH_LONG).show();
                         e.printStackTrace();
@@ -289,21 +286,24 @@ public class MainActivity extends AppCompatActivity {
         ContextWrapper contextWrapper = new ContextWrapper(getApplication());
         File photoDir = contextWrapper.getExternalFilesDir(Environment.DIRECTORY_DCIM);
         File encFile = new File(photoDir, "encfile" + ".jpg");
+        if(encFile.exists()) {
+            byte[] bytes = toByteArray(encFile.getPath());
+            if(bytes.length == 0)
+                return false;
 
-        byte[] bytes = toByteArray(encFile.getPath());
+            File decFile = new File(photoDir, "decfile.jpg");
 
-        File decFile = new File(photoDir, "decfile.jpg");
-
-        byte[] decBytes = RustDef.demoDecrypt(bytes, key_id);
-        createFileFromByteArray(decBytes, decFile);
+            byte[] decBytes = RustDef.demoDecrypt(bytes, key_id);
+            createFileFromByteArray(decBytes, decFile);
 
 
-        File imgFile = new File(decFile.getPath());
-        if (imgFile.exists()) {
-            Bitmap bitmap = BitmapFactory.decodeFile(imgFile.getPath());
-            imageView.setImageBitmap(bitmap);
-        }
-        return true;
+            File imgFile = new File(decFile.getPath());
+            if (imgFile.exists()) {
+                Bitmap bitmap = BitmapFactory.decodeFile(imgFile.getPath());
+                imageView.setImageBitmap(bitmap);
+            }
+            return true;
+        } else return false;
     }
 
     private void handleActivityResult(Intent data) {
@@ -327,8 +327,9 @@ public class MainActivity extends AppCompatActivity {
                 View view = findViewById(android.R.id.content);
 
                 if(pictureEncrypt(picPath)) {
-                    Snackbar.make(view, "Successful encrypt!", Snackbar.LENGTH_LONG).show();
-                } else Snackbar.make(view, "Failed to encrypt.", Snackbar.LENGTH_LONG).show();
+                    Snackbar.make(view, "Picture encrypted!", Snackbar.LENGTH_LONG).show();
+                } else
+                    Snackbar.make(view, "Encrypt failed, please check key.", Snackbar.LENGTH_LONG).show();
             } catch (Exception e) {
                 e.printStackTrace();
             }

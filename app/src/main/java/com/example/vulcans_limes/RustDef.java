@@ -71,9 +71,9 @@ class RustDef {
 
     static native byte[] demoEncrypt(byte[] data, String key_id);
 
-    static native void demoCreate(String key_id, String key_gen_info);
+    static native boolean demoCreate(String key_id, String key_gen_info);
 
-    static native void demoInit();
+    static native boolean demoInit();
 
     static native byte[] demoDecrypt(byte[] data, String key_id);
 
@@ -81,7 +81,7 @@ class RustDef {
 
     static native boolean demoVerify(byte[] data, byte[] signed_data, String key_id);
 
-    static native void demoLoad(String key_id);
+    static native boolean demoLoad(String key_id);
 
     //----------------------------------------------------------------------------------------------
     //Java methods that can be called from Rust

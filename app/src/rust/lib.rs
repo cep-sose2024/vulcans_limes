@@ -197,7 +197,7 @@ pub mod jni {
             return format!("Successfully completed {} tasks, 0 fails", passed);
         }
 
-        pub extern "jni" fn demoCreate(environment: &JNIEnv, key_id: String, key_gen_info: String) -> () {
+        pub extern "jni" fn demoCreate(environment: &JNIEnv, key_id: String, key_gen_info: String) -> bool {
             android_logger::init_once(
                 Config::default().with_max_level(LevelFilter::Debug),
             );
@@ -280,18 +280,20 @@ pub mod jni {
             }
             debug!("config: {:?}", config);
             let result = module.create_key(&key_id, config);
-            if result.is_err() { return; };
+            if result.is_err() { return false; };
             debug!("create sym key done");
+            return true;
         }
 
-        pub extern "jni" fn demoInit(_environment: &JNIEnv) -> () {
+        pub extern "jni" fn demoInit(_environment: &JNIEnv) -> bool {
             // Enable Console Output to be printed to Logcat
             android_logger::init_once(
                 Config::default().with_max_level(LevelFilter::Debug),
             );
+            return true;
         }
 
-        pub extern "jni" fn demoLoad(environment: &JNIEnv, key_id: String) -> () {
+        pub extern "jni" fn demoLoad(environment: &JNIEnv, key_id: String) -> bool {
 
             let instance = SecModules::get_instance(
                 "test_key".to_owned(),
@@ -304,7 +306,8 @@ pub mod jni {
                                                   Some(Aes(Gcm,Bits128)), //type doesn't matter, is ignored after key was created
                                                   environment.get_java_vm().unwrap())
                 .expect("Failed to create KnoxConfig"));
-            module.load_key(&key_id, config).unwrap()
+            let result = module.load_key(&key_id, config);
+            return result.is_ok()
         }
 
         /// Is called to Demo Encryption from Rust
@@ -321,7 +324,12 @@ pub mod jni {
                                                   environment.get_java_vm().unwrap())
                 .expect("Failed to create KnoxConfig"));
             module.load_key(&key_id, config).unwrap();
-            module.encrypt_data(&*data).unwrap().into_boxed_slice()
+            let result = module.encrypt_data(&*data);
+            if result.is_ok() {  return result.unwrap().into_boxed_slice()}
+            else {
+                let empty_array: Vec<u8> = vec![];
+                return empty_array.into_boxed_slice();
+            }
         }
 
         pub extern "jni" fn demoDecrypt(environment: &JNIEnv, data: Box<[u8]>, key_id: String) -> Box<[u8]> {
@@ -337,7 +345,12 @@ pub mod jni {
                                                   environment.get_java_vm().unwrap())
                 .expect("Failed to create KnoxConfig"));
             module.load_key(&key_id, config).unwrap();
-            module.decrypt_data(&*data).unwrap().into_boxed_slice()
+            let result = module.decrypt_data(&*data);
+            return if result.is_ok() { result.unwrap().into_boxed_slice()}
+            else {
+                let empty_array: Vec<u8> = vec![];
+                empty_array.into_boxed_slice()
+            }
         }
 
         pub extern "jni" fn demoSign(environment: &JNIEnv, data: Box<[u8]>, key_id: String) -> Box<[u8]> {
@@ -359,7 +372,12 @@ pub mod jni {
                 environment.get_java_vm().unwrap())
                 .expect("Failed to create KnoxConfig"));
             module.load_key(&key_id, config).unwrap();
-            module.sign_data(&*data).unwrap().into_boxed_slice()
+            let result = module.sign_data(&*data);
+            if result.is_ok() {  return result.unwrap().into_boxed_slice()}
+            else {
+                let empty_array: Vec<u8> = vec![];
+                return empty_array.into_boxed_slice();
+            }
         }
 
         pub extern "jni" fn demoVerify(environment: &JNIEnv, data: Box<[u8]>, signed_data: Box<[u8]>, key_id: String) -> bool {

@@ -238,6 +238,7 @@ public class MainActivity extends AppCompatActivity {
 
             byte[] unsignedBytes = text.getBytes(StandardCharsets.UTF_8);
             byte[] signedBytes = RustDef.demoSign(text.getBytes(StandardCharsets.UTF_8), key_id);
+            if(signedBytes.length == 0) return false;
 
             createFileFromByteArray(signedBytes, signedTxtFile);
             createFileFromByteArray(unsignedBytes, unsignedTxtFile);
@@ -270,11 +271,15 @@ public class MainActivity extends AppCompatActivity {
             ContextWrapper contextWrapper = new ContextWrapper(getApplication());
             File photoDir = contextWrapper.getExternalFilesDir(Environment.DIRECTORY_DCIM);
             File encFile = new File(photoDir, "encfile" + ".jpg");
-            byte[] encryptedData = RustDef.demoEncrypt(toByteArray(path), key_id);
+            if(encFile.exists()) {
 
-            createFileFromByteArray(encryptedData, encFile);
+                byte[] encryptedData = RustDef.demoEncrypt(toByteArray(path), key_id);
+                if(encryptedData.length == 0)
+                    return false;
+                createFileFromByteArray(encryptedData, encFile);
 
-            return true;
+                return true;
+            } else return false;
         } catch (Exception e) {
             e.printStackTrace();
             return false;
@@ -294,6 +299,8 @@ public class MainActivity extends AppCompatActivity {
             File decFile = new File(photoDir, "decfile.jpg");
 
             byte[] decBytes = RustDef.demoDecrypt(bytes, key_id);
+            if(decBytes.length == 0)
+                return false;
             createFileFromByteArray(decBytes, decFile);
 
 

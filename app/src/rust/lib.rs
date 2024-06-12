@@ -393,7 +393,8 @@ pub mod jni {
                                                   environment.get_java_vm().unwrap())
                 .expect("Failed to create KnoxConfig"));
             module.load_key(&key_id, config).unwrap();
-            module.verify_signature(&*data, &*signed_data).unwrap()
+            module.verify_signature(&*data, &*signed_data).unwrap_or(false)
+
         }
 
 

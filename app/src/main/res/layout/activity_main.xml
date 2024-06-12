@@ -100,6 +100,7 @@
     </LinearLayout>
 
 
+<!--
 
     <LinearLayout
         android:id="@+id/linearLayout4"
@@ -109,7 +110,7 @@
         android:layout_centerInParent="true"
         android:orientation="horizontal">
 
-        <!-- Button to test -->
+        &lt;!&ndash; Button to test &ndash;&gt;
         <Button
             android:id="@+id/idBtnTest"
             android:layout_width="90dp"
@@ -118,5 +119,6 @@
             android:backgroundTint="#f0780b"
             android:text="Test" />
     </LinearLayout>
+-->
 
 </RelativeLayout>

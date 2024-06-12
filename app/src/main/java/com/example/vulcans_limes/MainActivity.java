@@ -66,7 +66,7 @@ public class MainActivity extends AppCompatActivity {
         Button createButton = findViewById(R.id.idBtnCreate);
         Button signButton = findViewById(R.id.idBtnSign);
         Button verifyButton = findViewById(R.id.idBtnVerify);
-        Button testButton = findViewById(R.id.idBtnTest);
+        // Button testButton = findViewById(R.id.idBtnTest);
 
         final String[] algorithms = {
                 // RSA algorithms
@@ -98,23 +98,31 @@ public class MainActivity extends AppCompatActivity {
         });
 
         // When test button is pressed
-        testButton.setOnClickListener((v -> System.out.println(RustDef.callRust())));
+       // testButton.setOnClickListener((v -> System.out.println(RustDef.callRust())));
 
         // When encrypt button is pressed
         encButton.setOnClickListener(v -> {
-            Intent intent = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
-            launcher.launch(intent);
+            try {
+                Intent intent = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
+                launcher.launch(intent);
+                Snackbar.make(v, "Picture encrypted!", Snackbar.LENGTH_LONG).show();
+
+            } catch (Exception e){
+                e.printStackTrace();
+                Snackbar.make(v, "Encrypt failed, please check key.", Snackbar.LENGTH_LONG).show();
+
+            }
         });
 
         // When decrypt button is pressed
         decButton.setOnClickListener(v -> {
             try {
                 if (decryptPicture()) {
-                    Snackbar.make(v, "Successful decrypt!", Snackbar.LENGTH_LONG).show();
+                    Snackbar.make(v, "Picture decrypted!", Snackbar.LENGTH_LONG).show();
                 }
 
             } catch (Exception e) {
-                Snackbar.make(v, "Fail to decrypt image!", Snackbar.LENGTH_LONG).show();
+                Snackbar.make(v, "Failed to decrypt image!", Snackbar.LENGTH_LONG).show();
                 e.printStackTrace();
             }
         });
@@ -128,8 +136,14 @@ public class MainActivity extends AppCompatActivity {
                 builder.setView(input);
                 builder.setPositiveButton("OK", (dialog, which) -> {
                     key_id = input.getText().toString();
-                    RustDef.demoLoad(key_id);
-                    Snackbar.make(v, "Key with ID \"" + key_id + "\" was successfully loaded!", Snackbar.LENGTH_LONG).show();
+                    try{
+                        RustDef.demoLoad(key_id);
+                        Snackbar.make(v, "Key with ID " + key_id + " was successfully loaded!", Snackbar.LENGTH_LONG).show();
+
+                    } catch(Exception e){
+                        e.printStackTrace();
+                        Snackbar.make(v, "Key with ID " + key_id + " does not exist.", Snackbar.LENGTH_LONG).show();
+                    }
                 });
                 builder.setNegativeButton("Cancel", (dialog, which) -> dialog.cancel());
                 builder.show();
@@ -156,10 +170,15 @@ public class MainActivity extends AppCompatActivity {
             builder.setView(dialogView)
                     .setPositiveButton("OK", (dialog, id) -> {
                         EditText keyNameInput = dialogView.findViewById(R.id.keyNameInput);
-                        key_id = keyNameInput.getText().toString();
-                        String selectedAlgorithm = spinnerAlgorithm.getSelectedItem().toString();
-                        RustDef.demoCreate(key_id, selectedAlgorithm);
-                        Snackbar.make(v, "Key was successfully created!", Snackbar.LENGTH_LONG).show();
+                        try {
+                            key_id = keyNameInput.getText().toString();
+                            String selectedAlgorithm = spinnerAlgorithm.getSelectedItem().toString();
+                            RustDef.demoCreate(key_id, selectedAlgorithm);
+                            Snackbar.make(v, "Key "+ key_id +" was created!", Snackbar.LENGTH_LONG).show();
+                        } catch(Exception e){
+                            e.printStackTrace();
+                            Snackbar.make(v, "Key "+ key_id +" already exists.", Snackbar.LENGTH_LONG).show();
+                        }
                     })
                     .setNegativeButton("Cancel", (dialog, id) -> dialog.dismiss());
 
@@ -182,7 +201,7 @@ public class MainActivity extends AppCompatActivity {
                             Snackbar.make(v, "Text signed!", Snackbar.LENGTH_LONG).show();
                         }
                     } catch (IOException e) {
-                        Snackbar.make(v, "Fail to sign Text: " + e, Snackbar.LENGTH_LONG).show();
+                        Snackbar.make(v, "Failed to sign Text.", Snackbar.LENGTH_LONG).show();
                         e.printStackTrace();
                     }
                 });
@@ -309,10 +328,9 @@ public class MainActivity extends AppCompatActivity {
 
                 if(pictureEncrypt(picPath)) {
                     Snackbar.make(view, "Successful encrypt!", Snackbar.LENGTH_LONG).show();
-                } else Snackbar.make(view, "Failed to encrypt!", Snackbar.LENGTH_LONG).show();
+                } else Snackbar.make(view, "Failed to encrypt.", Snackbar.LENGTH_LONG).show();
             } catch (Exception e) {
                 e.printStackTrace();
-
             }
         }
     }

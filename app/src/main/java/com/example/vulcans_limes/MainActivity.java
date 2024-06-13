@@ -54,6 +54,8 @@ public class MainActivity extends AppCompatActivity {
      */
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        //executes a number of functionality tests and prints the result to the console
+        System.out.println(RustDef.testMethod());
 
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);

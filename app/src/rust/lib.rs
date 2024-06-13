@@ -52,6 +52,15 @@ pub mod jni {
 
     extern crate crypto_layer;
 
+    macro_rules! unwrap_or_return {
+    ( $e:expr ) => {
+        match $e {
+            Ok(x) => x,
+            Err(err) => return format!("Test failed: {:?}", err),
+        }
+    }
+}
+
     #[derive(Signature, TryIntoJavaValue, IntoJavaValue, TryFromJavaValue)]
     #[package(com.example.vulcans_1limes)]
     pub struct RustDef<'env: 'borrow, 'borrow> {
@@ -81,7 +90,8 @@ pub mod jni {
     /// | [jni::JObject<'env>](jni::objects::JObject)        | *(any Java object as input type)* |
     /// | [jni::jobject](jni::sys::jobject)                  | *(any Java object as output)*     |
     /// |----------------------------------------------------------------------------------------|
-    #[allow(non_snake_case)]
+    #[allow(non_snake_case)] //needed because some methods need java naming convention
+    #[allow(dead_code)]
     impl<'env: 'borrow, 'borrow> RustDef<'env, 'borrow> {
 
         //------------------------------------------------------------------------------------------
@@ -96,7 +106,7 @@ pub mod jni {
         }
 
         ///Tests all functions through the abstraction layer
-        pub extern "jni" fn callRust(environment: &JNIEnv) -> String {
+        pub extern "jni" fn testMethod(environment: &JNIEnv) -> String {
             //Settings for the Test
             let sym_key = Aes(Cbc, Bits128); //Key to be used for symmetric encryption
             let asym_key = Rsa(Bits2048); //Key to be used for asymmetric encryption
@@ -110,17 +120,16 @@ pub mod jni {
             let mut passed = 0;
 
             debug!("Start Test");
-            let instance = SecModules::get_instance(
+            let instance =  SecModules::get_instance(
                 "test_key".to_owned(),
                 SecurityModule::Tpm(TpmType::Android(AndroidTpmType::Knox)),
                 None).unwrap();
             let mut module = instance.lock().unwrap();
             debug!("created provider");
 
-            module
-                .initialize_module()
-                .expect("Failed to initialize module");
-            passed = Self::check(environment, passed).map_err(|err| return err).unwrap();
+            unwrap_or_return!(module
+                .initialize_module());
+            passed = unwrap_or_return!(Self::check(environment, passed));
             debug!("init module done");
 
             let keyname: &str = &Self::generate_unique_string();
@@ -128,75 +137,82 @@ pub mod jni {
                                                   Some(sym_key),
                                                   environment.get_java_vm().unwrap())
                 .expect("Failed to create KnoxConfig"));
-            let result = module.create_key(keyname, config);
-            if result.is_err() { return format!("Create key failed: {:?}", result.unwrap_err()); };
-            passed = Self::check(environment, passed).map_err(|err| return err).unwrap();
+            unwrap_or_return!( module.create_key(keyname, config));
+            passed = unwrap_or_return!( Self::check(environment, passed));
             debug!("create sym key done");
 
             let config = Box::new(KnoxConfig::new(None,
                                                   Some(sym_key),
                                                   environment.get_java_vm().unwrap())
                 .expect("Failed to create KnoxConfig"));
-            module
+            unwrap_or_return!(module
                 .load_key(keyname, config)
-                .map_err(|err| return format!("Fail: {}", err)).unwrap();
-            passed = Self::check(environment, passed).map_err(|err| return err).unwrap();
+            );
+            passed = unwrap_or_return!(Self::check(environment, passed));
             debug!("load key done");
 
             debug!("Starting encrypt: {:?}", clear_data);
-            let enc_data = module
+            let enc_data = unwrap_or_return!(module
                 .encrypt_data(clear_data)
-                .map_err(|err| return format!("Fail: {}", err)).unwrap();
-            passed = Self::check(environment, passed).map_err(|err| return err).unwrap();
+                );
+            passed = unwrap_or_return!(Self::check(environment, passed));
 
             debug!("Starting decrypt: {:?}", enc_data);
-            let dec_data = module
+            let dec_data = unwrap_or_return!(module
                 .decrypt_data(&enc_data)
-                .map_err(|err| return format!("Fail: {}", err)).unwrap();
-            passed = Self::check(environment, passed).map_err(|err| return err).unwrap();
+            );
+            passed = unwrap_or_return!(Self::check(environment, passed));
             debug!("Decrypted data: {:?}", dec_data);
-            debug!("Clear Data matches decrypted data: {}",clear_data == &dec_data);
+            debug!("Clear text matches decrypted text: {}",clear_data == &dec_data);
 
 
             debug!("Starting asym key generation");
-            // let keyname: &str = &format!("Asym{}", &Self::generate_unique_string());
-            let keyname = "tmp2";
+            let keyname: &str = &format!("Asym{}", &Self::generate_unique_string());
             let config = Box::new(KnoxConfig::new(Some(asym_key),
                                                   None,
                                                   environment.get_java_vm().unwrap())
                 .expect("Failed to create KnoxConfig"));
-            module
-                .create_key(keyname, config)
-                .map_err(|err| return format!("Fail: {}", err)).unwrap();
-            passed = Self::check(environment, passed).map_err(|err| return err).unwrap();
+            unwrap_or_return!(module
+                .create_key(keyname, config));
+            passed = unwrap_or_return!(Self::check(environment, passed));
             debug!("create asym key done");
 
             let config = Box::new(KnoxConfig::new(Some(asym_key),
                                                   None,
                                                   environment.get_java_vm().unwrap())
                 .expect("Failed to create KnoxConfig"));
-            module
+            unwrap_or_return!(module
                 .load_key(keyname, config)
-                .map_err(|err| return format!("Fail: {}", err)).unwrap();
-            passed = Self::check(environment, passed).map_err(|err| return err).unwrap();
+            );
+            passed = unwrap_or_return!(Self::check(environment, passed));
             debug!("load key done");
 
             debug!("Starting sign: {:?}", sign_data);
-            let verify_data = module
+            let verify_data = unwrap_or_return!(module
                 .sign_data(sign_data)
-                .map_err(|err| return format!("Fail: {}", err)).unwrap();
-            passed = Self::check(environment, passed).map_err(|err| return err).unwrap();
+            );
+            passed = unwrap_or_return!(Self::check(environment, passed));
 
             debug!("Starting verify: {:?}", verify_data);
-            let result_verify = module
+            let result_verify = unwrap_or_return!(module
                 .verify_signature(&sign_data, &verify_data)
-                .map_err(|err| return format!("Fail: {}", err)).unwrap();
-            passed = Self::check(environment, passed).map_err(|err| return err).unwrap();
-            debug!("Result from verify_data(): {}", result_verify);
+            );
+            passed = unwrap_or_return!(Self::check(environment, passed));
+            debug!("Result from verify_data() (expected true): {}", result_verify);
+
+            //Modify clear text to ensure a non-match with the signature
+            let sign_data = [sign_data[0] <<2, sign_data[1], sign_data[2]];
+            debug!("Testing with modified clear text: {:?} and same signature", sign_data);
+            let result_verify = unwrap_or_return!(module
+                .verify_signature(&sign_data, &verify_data)
+            );
+            passed = unwrap_or_return!(Self::check(environment, passed));
+            debug!("Result from verify_data() (expected false): {}", result_verify);
 
             return format!("Successfully completed {} tasks, 0 fails", passed);
         }
 
+        #[allow(unused_qualifications)]
         pub extern "jni" fn demoCreate(environment: &JNIEnv, key_id: String, key_gen_info: String) -> bool {
             android_logger::init_once(
                 Config::default().with_max_level(LevelFilter::Debug),
@@ -325,10 +341,10 @@ pub mod jni {
                 .expect("Failed to create KnoxConfig"));
             module.load_key(&key_id, config).unwrap();
             let result = module.encrypt_data(&*data);
-            if result.is_ok() {  return result.unwrap().into_boxed_slice()}
+            return if result.is_ok() { result.unwrap().into_boxed_slice()}
             else {
                 let empty_array: Vec<u8> = vec![];
-                return empty_array.into_boxed_slice();
+                empty_array.into_boxed_slice()
             }
         }
 
@@ -373,10 +389,10 @@ pub mod jni {
                 .expect("Failed to create KnoxConfig"));
             module.load_key(&key_id, config).unwrap();
             let result = module.sign_data(&*data);
-            if result.is_ok() {  return result.unwrap().into_boxed_slice()}
+            return if result.is_ok() { result.unwrap().into_boxed_slice()}
             else {
                 let empty_array: Vec<u8> = vec![];
-                return empty_array.into_boxed_slice();
+                empty_array.into_boxed_slice()
             }
         }
 

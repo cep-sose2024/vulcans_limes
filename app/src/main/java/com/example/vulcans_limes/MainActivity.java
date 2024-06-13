@@ -271,7 +271,6 @@ public class MainActivity extends AppCompatActivity {
             ContextWrapper contextWrapper = new ContextWrapper(getApplication());
             File photoDir = contextWrapper.getExternalFilesDir(Environment.DIRECTORY_DCIM);
             File encFile = new File(photoDir, "encfile" + ".jpg");
-            if(encFile.exists()) {
 
                 byte[] encryptedData = RustDef.demoEncrypt(toByteArray(path), key_id);
                 if(encryptedData.length == 0)
@@ -279,7 +278,7 @@ public class MainActivity extends AppCompatActivity {
                 createFileFromByteArray(encryptedData, encFile);
 
                 return true;
-            } else return false;
+
         } catch (Exception e) {
             e.printStackTrace();
             return false;
@@ -291,7 +290,7 @@ public class MainActivity extends AppCompatActivity {
         ContextWrapper contextWrapper = new ContextWrapper(getApplication());
         File photoDir = contextWrapper.getExternalFilesDir(Environment.DIRECTORY_DCIM);
         File encFile = new File(photoDir, "encfile" + ".jpg");
-        if(encFile.exists()) {
+
             byte[] bytes = toByteArray(encFile.getPath());
             if(bytes.length == 0)
                 return false;
@@ -310,7 +309,6 @@ public class MainActivity extends AppCompatActivity {
                 imageView.setImageBitmap(bitmap);
             }
             return true;
-        } else return false;
     }
 
     private void handleActivityResult(Intent data) {

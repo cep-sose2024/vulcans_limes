@@ -67,7 +67,7 @@ class RustDef {
     static native ArrayList<String> special(ArrayList<Integer> input1, int input2);
 
 
-    static native String callRust();
+    static native String testMethod();
 
     static native byte[] demoEncrypt(byte[] data, String key_id);
 

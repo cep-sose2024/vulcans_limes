@@ -1,15 +1,14 @@
 package com.example.vulcans_limes;
 
+
 import android.app.AlertDialog;
 import android.content.ContextWrapper;
 import android.content.Intent;
-import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
-import android.provider.MediaStore;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.ArrayAdapter;
@@ -17,6 +16,7 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.Spinner;
+import android.widget.TextView;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
@@ -29,7 +29,9 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 
 
 /**
@@ -43,8 +45,12 @@ import java.nio.charset.StandardCharsets;
 public class MainActivity extends AppCompatActivity {
 
     private ImageView imageView;
-    private ActivityResultLauncher<Intent> launcher;
+    private ActivityResultLauncher<Intent> encryptLauncher;
+    private ActivityResultLauncher<Intent> decryptLauncher;
     private String key_id;
+    private TextView textViewSigned;
+    private TextView textViewVerify;
+
     /**
      * This will run upon starting the app. It initializes the screen with its components.
      *
@@ -68,6 +74,10 @@ public class MainActivity extends AppCompatActivity {
         Button verifyButton = findViewById(R.id.idBtnVerify);
         // Button testButton = findViewById(R.id.idBtnTest);
 
+        textViewSigned = findViewById(R.id.textViewSignedBytes);
+        textViewVerify = findViewById(R.id.textViewVerify);
+
+
         final String[] algorithms = {
                 // RSA algorithms
                 "RSA;2048;SHA-256;PKCS1",
@@ -90,34 +100,39 @@ public class MainActivity extends AppCompatActivity {
         };
 
         // Activity for encryption on button press
-        launcher = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
-            if (result.getResultCode() == RESULT_OK) {
-                Intent data = result.getData();
-                handleActivityResult(data);
+        encryptLauncher = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
+            if (result.getResultCode() == RESULT_OK && result.getData() != null) {
+            Uri uri = result.getData().getData();
+            handleEncryptedImage(uri);
+            }
+        });
+
+        // Activity for decryption on button press
+        decryptLauncher = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
+            if (result.getResultCode() == RESULT_OK && result.getData() != null) {
+                Uri uri = result.getData().getData();
+                handleDecryptedImage(uri);
             }
         });
 
         // When test button is pressed
-       // testButton.setOnClickListener((v -> System.out.println(RustDef.callRust())));
+        // testButton.setOnClickListener((v -> System.out.println(RustDef.callRust())));
 
         // When encrypt button is pressed
         encButton.setOnClickListener(v -> {
-                Intent intent = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
-                launcher.launch(intent);
+            Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+            intent.setType("*/*");
+            intent.addCategory(Intent.CATEGORY_OPENABLE);
+            encryptLauncher.launch(intent);
         });
 
         // When decrypt button is pressed
         decButton.setOnClickListener(v -> {
-            try {
-                if (decryptPicture())
-                    Snackbar.make(v, "Picture decrypted!", Snackbar.LENGTH_LONG).show();
-                else
-                    Snackbar.make(v, "Failed to decrypt image!", Snackbar.LENGTH_LONG).show();
+            Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+            intent.setType("*/*");
+            intent.addCategory(Intent.CATEGORY_OPENABLE);
+            decryptLauncher.launch(intent);
 
-            } catch (Exception e) {
-                Snackbar.make(v, "Failed to decrypt image!", Snackbar.LENGTH_LONG).show();
-                e.printStackTrace();
-            }
         });
 
         //When load key button is pressed
@@ -129,12 +144,12 @@ public class MainActivity extends AppCompatActivity {
                 builder.setView(input);
                 builder.setPositiveButton("OK", (dialog, which) -> {
                     key_id = input.getText().toString();
-                    try{
-                        if(RustDef.demoLoad(key_id))
+                    try {
+                        if (RustDef.demoLoad(key_id))
                             Snackbar.make(v, "Key with ID " + key_id + " was successfully loaded!", Snackbar.LENGTH_LONG).show();
                         else
                             Snackbar.make(v, "Key with ID " + key_id + " does not exist.", Snackbar.LENGTH_LONG).show();
-                    } catch(Exception e){
+                    } catch (Exception e) {
                         e.printStackTrace();
                         Snackbar.make(v, "Key with ID " + key_id + " does not exist.", Snackbar.LENGTH_LONG).show();
                     }
@@ -167,13 +182,13 @@ public class MainActivity extends AppCompatActivity {
                         try {
                             key_id = keyNameInput.getText().toString();
                             String selectedAlgorithm = spinnerAlgorithm.getSelectedItem().toString();
-                            if(RustDef.demoCreate(key_id, selectedAlgorithm))
-                                Snackbar.make(v, "Key "+ key_id +" was created!", Snackbar.LENGTH_LONG).show();
+                            if (RustDef.demoCreate(key_id, selectedAlgorithm))
+                                Snackbar.make(v, "Key " + key_id + " was created!", Snackbar.LENGTH_LONG).show();
                             else
-                                Snackbar.make(v, "Key "+ key_id +" already exists.", Snackbar.LENGTH_LONG).show();
-                        } catch(Exception e) {
+                                Snackbar.make(v, "Key " + key_id + " already exists.", Snackbar.LENGTH_LONG).show();
+                        } catch (Exception e) {
                             e.printStackTrace();
-                            Snackbar.make(v, "Key "+ key_id +" already exists.", Snackbar.LENGTH_LONG).show();
+                            Snackbar.make(v, "Key " + key_id + " already exists.", Snackbar.LENGTH_LONG).show();
                         }
                     })
                     .setNegativeButton("Cancel", (dialog, id) -> dialog.dismiss());
@@ -215,17 +230,18 @@ public class MainActivity extends AppCompatActivity {
         //When verify button is pressed
         verifyButton.setOnClickListener(v -> {
             try {
-                if (verifyText())
+                boolean verify = verifyText();
+                if (verify)
                     Snackbar.make(v, "Successful verify!", Snackbar.LENGTH_LONG).show();
                 else
                     Snackbar.make(v, "Failed to verify Text", Snackbar.LENGTH_LONG).show();
 
+                textViewVerify.setText("\n Verify: " + verify);
             } catch (Exception e) {
                 e.printStackTrace();
             }
 
         });
-
     }
 
 
@@ -242,6 +258,8 @@ public class MainActivity extends AppCompatActivity {
 
             createFileFromByteArray(signedBytes, signedTxtFile);
             createFileFromByteArray(unsignedBytes, unsignedTxtFile);
+            String textViewText = "Signed Bytes: " + Arrays.toString(signedBytes);
+            textViewSigned.setText(textViewText);
             return true;
         } catch (Exception e) {
             e.printStackTrace();
@@ -266,16 +284,18 @@ public class MainActivity extends AppCompatActivity {
     }
 
 
-    private boolean pictureEncrypt(String path) {
+    private boolean pictureEncrypt(Uri uri) {
         try {
-            ContextWrapper contextWrapper = new ContextWrapper(getApplication());
-            File photoDir = contextWrapper.getExternalFilesDir(Environment.DIRECTORY_DCIM);
-            File encFile = new File(photoDir, "encfile" + ".jpg");
+            InputStream inputStream = getContentResolver().openInputStream(uri);
+            assert inputStream != null;
+            byte[] fileData = readBytes(inputStream);
 
-                byte[] encryptedData = RustDef.demoEncrypt(toByteArray(path), key_id);
-                if(encryptedData.length == 0)
-                    return false;
-                createFileFromByteArray(encryptedData, encFile);
+            byte[] encryptedData = RustDef.demoEncrypt(fileData, key_id);
+            File downloadsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
+            File encryptedFile = new File(downloadsDir, "encrypted_file.enc");
+            FileOutputStream fos = new FileOutputStream(encryptedFile);
+            fos.write(encryptedData);
+            fos.close();
 
                 return true;
 
@@ -285,61 +305,57 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    private boolean decryptPicture() throws Exception {
+    private boolean decryptPicture(Uri uri) {
+        try {
+            InputStream inputStream = getContentResolver().openInputStream(uri);
+            assert inputStream != null;
+            byte[] encryptedData = readBytes(inputStream);
+            byte[] decryptedData = RustDef.demoDecrypt(encryptedData, key_id);
+            File tempFile = File.createTempFile("decrypted_image", ".jpg", getCacheDir());
+            FileOutputStream fos = new FileOutputStream(tempFile);
+            fos.write(decryptedData);
+            fos.close();
 
-        ContextWrapper contextWrapper = new ContextWrapper(getApplication());
-        File photoDir = contextWrapper.getExternalFilesDir(Environment.DIRECTORY_DCIM);
-        File encFile = new File(photoDir, "encfile" + ".jpg");
-
-            byte[] bytes = toByteArray(encFile.getPath());
-            if(bytes.length == 0)
-                return false;
-
-            File decFile = new File(photoDir, "decfile.jpg");
-
-            byte[] decBytes = RustDef.demoDecrypt(bytes, key_id);
-            if(decBytes.length == 0)
-                return false;
-            createFileFromByteArray(decBytes, decFile);
-
-
-            File imgFile = new File(decFile.getPath());
+            File imgFile = new File(tempFile.getPath());
             if (imgFile.exists()) {
                 Bitmap bitmap = BitmapFactory.decodeFile(imgFile.getPath());
                 imageView.setImageBitmap(bitmap);
+                return true;
             }
-            return true;
+            return false;
+
+        } catch (Exception e){
+            e.printStackTrace();
+            return false;
+        }
     }
 
-    private void handleActivityResult(Intent data) {
-        if (data != null) {
-            Uri imgUri = data.getData();
-
-            String[] filePath = {MediaStore.Images.Media.DATA};
-
-            assert imgUri != null;
-            Cursor cursor = getContentResolver().query(imgUri, filePath, null, null, null);
-            assert cursor != null;
-            cursor.moveToFirst();
-
-            int columnIndex = cursor.getColumnIndex(filePath[0]);
-
-            String picPath = cursor.getString(columnIndex);
-
-            cursor.close();
-
+    private void handleEncryptedImage(Uri uri) {
             try {
                 View view = findViewById(android.R.id.content);
 
-                if(pictureEncrypt(picPath)) {
-                    Snackbar.make(view, "Picture encrypted!", Snackbar.LENGTH_LONG).show();
-                } else
+                if(pictureEncrypt(uri))
+                    Snackbar.make(view, "File encrypted!", Snackbar.LENGTH_LONG).show();
+                else
                     Snackbar.make(view, "Encrypt failed, please check key.", Snackbar.LENGTH_LONG).show();
             } catch (Exception e) {
                 e.printStackTrace();
             }
-        }
+
     }
+
+    private void handleDecryptedImage(Uri uri) {
+            try {
+                View view = findViewById(android.R.id.content);
+
+                if (decryptPicture(uri))
+                    Snackbar.make(view, "Decryption successful", Snackbar.LENGTH_LONG).show();
+                else
+                    Snackbar.make(view, "Decryption failed", Snackbar.LENGTH_LONG).show();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
 
     private byte[] toByteArray(String path) throws IOException {
         FileInputStream fis = new FileInputStream(path);
@@ -373,4 +389,18 @@ public class MainActivity extends AppCompatActivity {
             }
         }
     }
+
+    private byte[] readBytes(InputStream inputStream) throws IOException {
+        ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+        byte[] buffer = new byte[1024];
+        int len;
+        while ((len = inputStream.read(buffer)) != -1) {
+            byteArrayOutputStream.write(buffer, 0, len);
+        }
+        return byteArrayOutputStream.toByteArray();
+    }
 }
+
+
+
+

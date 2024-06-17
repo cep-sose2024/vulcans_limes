@@ -22,6 +22,8 @@ import java.security.UnrecoverableKeyException;
 import java.security.cert.CertificateException;
 import java.security.spec.ECGenParameterSpec;
 import java.security.spec.InvalidKeySpecException;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
@@ -40,6 +42,10 @@ import javax.crypto.spec.IvParameterSpec;
  */
 public class CryptoManager {
     private static final String ANDROID_KEY_STORE = "AndroidKeyStore";
+    private static final int IV_CBC_AND_CTR_AES = 16; // CBC & CTR standard IV size is 16 Byte
+    private static final int IV_GCM_AES = 12; // GCM standard IV size is 12 Byte
+    private static final int IV_CBC_DES = 8; // DES with CBC standard IV size is 8 Byte
+    private static final int TAG_SIZE_GCM = 128; // 128 is the recommended TagSize
     private final KeyStore keyStore;
     private String KEY_NAME;
 
@@ -78,6 +84,9 @@ public class CryptoManager {
     public void genKey(String key_id, String keyGenInfo) throws CertificateException,
             IOException, NoSuchAlgorithmException, NoSuchProviderException,
             InvalidAlgorithmParameterException, KeyStoreException {
+        Pattern pattern = Pattern.compile("^(AES|DESede);(\\d+);(CBC|GCM|CTR);(NoPadding|PKCS7Padding)$");
+        Matcher matcher = pattern.matcher(keyGenInfo);
+        assert matcher.matches() : "Generate KeyPair keyGenInfo is not valid.";
         String[] keyGenInfoArr = keyGenInfo.split(";");
         String KEY_ALGORITHM = keyGenInfoArr[0];
         int KEY_SIZE = Integer.parseInt(keyGenInfoArr[1]);
@@ -140,11 +149,11 @@ public class CryptoManager {
         cipher.init(Cipher.ENCRYPT_MODE, secretKey);
         byte[] iv = cipher.getIV();
         if (TRANSFORMATION.contains("/GCM/")) {
-            assert iv.length == 12; // GCM standard IV size is 12 Byte
+            assert iv.length == IV_GCM_AES : "AES GCM IV length not matching.";
         } else if(TRANSFORMATION.contains("DESede")) {
-            assert iv.length == 8; // DES standard IV size is 8 Byte
+            assert iv.length == IV_CBC_DES : "DES CBC IV length not matching.";
         } else {
-            assert iv.length == 16; // CBC & CTR standard IV size is 16 Byte
+            assert iv.length == IV_CBC_AND_CTR_AES : "AES CBC and CTR IV length not matching.";
         }
         byte[] encryptedData = cipher.doFinal(data);
         ByteBuffer byteBuffer = ByteBuffer.allocate(iv.length + encryptedData.length);
@@ -189,15 +198,22 @@ public class CryptoManager {
         ByteBuffer byteBuffer = ByteBuffer.wrap(encryptedData);
         byte[] iv;
         if (TRANSFORMATION.contains("/GCM/")) {
-            iv = new byte[12]; // GCM standard IV size
+            assert byteBuffer.capacity() > IV_GCM_AES : "Data is not at least IV size in length.";
+            iv = new byte[IV_GCM_AES];
             byteBuffer.get(iv);
             encryptedData = new byte[byteBuffer.remaining()];
             byteBuffer.get(encryptedData);
-            GCMParameterSpec gcmParameterSpec = new GCMParameterSpec(128, iv); // 128 is the recommended TagSize
+            GCMParameterSpec gcmParameterSpec = new GCMParameterSpec(TAG_SIZE_GCM, iv);
             cipher.init(Cipher.DECRYPT_MODE, secretKey, gcmParameterSpec);
         } else {
-            if(TRANSFORMATION.contains("DESede")) iv = new byte[8]; // DES standard IV size
-            else iv = new byte[16]; // CBC & CTR standard IV size
+            if(TRANSFORMATION.contains("DESede")){
+                assert byteBuffer.capacity() > IV_CBC_DES : "Data is not at least IV size in length.";
+                iv = new byte[IV_CBC_DES];
+            }
+            else {
+                assert byteBuffer.capacity() > IV_CBC_AND_CTR_AES : "Data is not at least IV size in length.";
+                iv = new byte[IV_CBC_AND_CTR_AES];
+            }
             byteBuffer.get(iv);
             encryptedData = new byte[byteBuffer.remaining()];
             byteBuffer.get(encryptedData);
@@ -228,6 +244,9 @@ public class CryptoManager {
     public void generateKeyPair(String key_id, String keyGenInfo) throws CertificateException, IOException,
             NoSuchAlgorithmException, InvalidAlgorithmParameterException, NoSuchProviderException,
             KeyStoreException {
+        Pattern pattern = Pattern.compile("^(RSA|EC);(\\d+|curve);(SHA-256);(PKCS5Padding|NoPadding)?$");
+        Matcher matcher = pattern.matcher(keyGenInfo);
+        assert matcher.matches() : "Generate KeyPair keyGenInfo is not valid.";
         String[] keyGenInfoArr = keyGenInfo.split(";");
         String KEY_ALGORITHM = keyGenInfoArr[0];
         String HASH = keyGenInfoArr[2];
@@ -380,15 +399,18 @@ public class CryptoManager {
             SecretKey secretKey = (SecretKey) key;
             SecretKeyFactory factory = SecretKeyFactory.getInstance(secretKey.getAlgorithm(), ANDROID_KEY_STORE);
             keyInfo = (KeyInfo) factory.getKeySpec(secretKey, KeyInfo.class);
+            assert keyInfo.getEncryptionPaddings().length > 0 : "No encryption padding found.";
             keyPadding = keyInfo.getEncryptionPaddings()[0];
         } else if (key instanceof PrivateKey) {
             PrivateKey privateKey = (PrivateKey) key;
             KeyFactory factory = KeyFactory.getInstance(privateKey.getAlgorithm(), ANDROID_KEY_STORE);
             keyInfo = factory.getKeySpec(privateKey, KeyInfo.class);
+            assert keyInfo.getSignaturePaddings().length > 0 : "No signature padding found.";
             keyPadding = keyInfo.getSignaturePaddings()[0];
         } else {
             throw new KeyStoreException("Unsupported key type");
         }
+        assert keyInfo.getBlockModes().length > 0 : "No block modes found.";
         return keyAlgorithm + "/" + keyInfo.getBlockModes()[0] + "/" + keyPadding;
     }
 
@@ -412,6 +434,7 @@ public class CryptoManager {
             InvalidKeySpecException {
         KeyFactory keyFactory = KeyFactory.getInstance(privateKey.getAlgorithm(), ANDROID_KEY_STORE);
         KeyInfo keyInfo = keyFactory.getKeySpec(privateKey, KeyInfo.class);
+        assert keyInfo.getDigests().length > 0 : "No digest found.";
         String hashAlgorithm = keyInfo.getDigests()[0].replaceAll("-", "");
         String algorithm = privateKey.getAlgorithm();
         if (algorithm.contains("EC")) {

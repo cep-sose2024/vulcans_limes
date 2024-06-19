@@ -93,9 +93,9 @@ public class MainActivity extends AppCompatActivity {
                 "AES;128;GCM;NoPadding",
                 "AES;128;CBC;PKCS7Padding",
                 "AES;128;CTR;NoPadding",
-                "AES;192;GCM;NoPadding",
+/*                "AES;192;GCM;NoPadding",
                 "AES;192;CBC;PKCS7Padding",
-                "AES;192;CTR;NoPadding",
+                "AES;192;CTR;NoPadding",*/
                 "AES;256;GCM;NoPadding",
                 "AES;256;CBC;PKCS7Padding",
                 "AES;256;CTR;NoPadding"
